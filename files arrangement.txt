@@ -1,0 +1,40 @@
+Your_Project_Folder/
+├── Your_Project.sln
+├── Your_Project.vcxproj
+├── assets/
+│   ├── fonts/
+│   │   └── Kreon-Medium.ttf
+│   ├── images/
+│   │   ├── maps/
+│   │   │   ├── map1.png
+│   │   │   ├── map2.png
+│   │   │   ├── map3.png
+│   │   │   └──  map4.png
+│   │   ├── enemy.png
+│   │   ├── player.png
+│   │   ├── axe.png
+│   │   ├── TileMap.png
+│   ├── maps/
+│   │   ├── map1.txt
+│   │   ├── map2.txt
+│   │   ├── map3.txt
+│   │   ├── map4.txt
+│   └── audio/
+│       ├── music/
+│       │   └── background_music.ogg  (Use .ogg for music)
+│       └── sfx/
+│           ├── button_click.wav
+│           ├── enemy_hit.wav
+│           ├── tower_shoot.wav
+│           ├── victory.wav
+│           └── defeat.wav
+├── main.cpp
+├── game.h
+├── game.cpp
+├── Entity.h
+├── Entity.cpp
+├── ... (other existing files)
+└── (NEW FILES WE WILL ADD)
+    ├── SoundManager.h
+    ├── SoundManager.cpp
+    ├── UIElements.h  (A simple helper for buttons)

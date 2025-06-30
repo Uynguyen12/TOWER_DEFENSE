@@ -21,6 +21,8 @@ void Entity::OnCollision(Entity& pOtherEntity) {
 			//Projectile hit the enemy
 			pOtherEntity.DealDamage(1);
 			m_bDeletionRequested = true;
+			// ADDED: Play sound effect
+			SoundManager::getInstance().playSfx(SoundManager::SfxType::EnemyHit);
 		}
 	}
 }
@@ -28,6 +30,8 @@ void Entity::OnCollision(Entity& pOtherEntity) {
 void Entity::DealDamage(int damage) {
 	m_iHealth -= damage;
 	DamageTextManager::getInstanceNonConst().AddDamageText(damage, GetPosition());
+	// ADDED: Trigger a visual flash effect
+	m_fFlashTimer = 0.2f; // Flash for 0.2 seconds
 	if (m_iHealth <= 0) {
 		m_bDeletionRequested = true;
 	}

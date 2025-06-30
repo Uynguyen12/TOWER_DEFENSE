@@ -3,7 +3,7 @@
 DamageTextManager DamageTextManager::m_Instance;
 
 DamageTextManager::DamageTextManager() {
-	m_Font.loadFromFile("Fonts/Kreon-Medium.ttf");
+	m_Font.loadFromFile("assets/fonts/Kreon-Medium.ttf");
 }
 
 DamageTextManager::~DamageTextManager() {

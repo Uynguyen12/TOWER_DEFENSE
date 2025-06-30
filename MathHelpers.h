@@ -28,16 +28,16 @@ namespace MathHelpers {
     }
 
     static constexpr float Angle(const sf::Vector2f& a) {
-        if (a.x == 0) {
-            if (a.y > 0) {
+        if (a.x == 0.0f) {
+            if (a.y > 0.0f) {
                 return 0.0f;
             }
-            return 180.0;
+            return 180.0f;
         }
-        float angle = atan2f(a.y, a.x) - HALF_PI;
+        float angle = atan2f(a.y, a.x) - static_cast<float>(HALF_PI);
 
         if (angle < 0.0f) {
-            angle += TWO_PI;
+            angle += static_cast<float>(TWO_PI);
         }
         return angle * RtoD;
     }

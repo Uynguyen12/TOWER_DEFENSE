@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include "UIElements.h"
 using namespace std;
 #ifndef ENTITY_H	
 #define ENTITY_H
@@ -9,9 +10,17 @@ class Entity : public sf::Drawable
 {
 public:
 	struct PhysicsData {
-		PhysicsData() {
-			m_vImpulse = sf::Vector2f(0.0f, 0.0f);
-		}
+		PhysicsData() :
+			m_eShape(Shape::Circle),
+			m_eType(Type::Static),
+			m_iMyLayer(0),
+			m_iLayersToIgnore(0),
+			m_fRadius(0.0f),
+			m_fWidth(0.0f),
+			m_fHeight(0.0f),
+			m_vVelocity(0.0f, 0.0f),
+			m_vImpulse(0.0f, 0.0f)
+		{}
 
 		enum Layer {
 			Enemy = 1, //0b0001
@@ -219,6 +228,7 @@ private:
 public:
 	float m_fAxeTimer;
 	float m_fAttackTimer;
+	float m_fFlashTimer = 0.0f;
 };
 
 #endif; 
