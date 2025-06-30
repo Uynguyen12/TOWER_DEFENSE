@@ -1,0 +1,135 @@
+﻿  DamageTextManager.cpp
+D:\Projects\TOWER_DEFENSE-main\DamageTextManager.h(5,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+  (compiling source file 'DamageTextManager.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\DamageTextManager.cpp(14,42): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\DamageTextManager.cpp(14,19): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+  Entity.cpp
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         ]
+  (compiling source file 'Entity.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         ]
+  (compiling source file 'Entity.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\MathHelpers.h(37,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'Entity.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\MathHelpers.h(40,22): warning C4305: '+=': truncation from 'const double' to 'float'
+  (compiling source file 'Entity.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\DamageTextManager.h(5,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+  (compiling source file 'Entity.cpp')
+  
+  game.cpp
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         ]
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         ]
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\MathHelpers.h(37,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\MathHelpers.h(40,22): warning C4305: '+=': truncation from 'const double' to 'float'
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\DamageTextManager.h(5,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\game.cpp(152,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(249,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(256,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(617,11): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(617,11): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\game.cpp(617,11): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\game.cpp(617,11): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\game.cpp(617,11): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\game.cpp(618,11): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(618,11): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\game.cpp(618,11): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\game.cpp(618,11): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\game.cpp(618,11): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\game.cpp(630,41): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(630,27): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(647,11): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(647,11): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\game.cpp(647,11): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\game.cpp(647,11): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\game.cpp(647,11): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\game.cpp(648,11): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(648,11): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\game.cpp(648,11): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\game.cpp(648,11): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\game.cpp(648,11): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,53): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,53): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,53): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,53): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,53): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,39): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,39): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,39): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\game.cpp(651,39): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\game.cpp(781,50): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+  main.cpp
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,62): warning C4244:         ]
+  (compiling source file 'main.cpp')
+  
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-main\Entity.h(169,39): warning C4244:         ]
+  (compiling source file 'main.cpp')
+  
+  TileOptions.cpp
+  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 661 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  SFML game.vcxproj -> D:\Projects\TOWER_DEFENSE-main\x64\Release\SFML game.exe

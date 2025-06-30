@@ -1,0 +1,87 @@
+﻿  game.cpp
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         ]
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         ]
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-Quan\DamageTextManager.h(5,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+  (compiling source file 'game.cpp')
+  
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(279,13): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(377,13): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(384,13): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(856,8): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(856,8): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(856,8): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(856,8): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(856,8): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(857,8): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(857,8): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(857,8): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(857,8): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(857,8): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(869,41): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(869,27): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(886,8): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(886,8): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(886,8): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(886,8): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(886,8): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(887,8): warning C4244: 'initializing': conversion from 'T' to 'int', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(887,8): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(887,8): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(887,8): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(887,8): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,50): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,50): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,50): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,50): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,50): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,36): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,36): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,36): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,36): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(890,36): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\game.cpp(1033,41): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+  main.cpp
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,62): warning C4244:         ]
+  (compiling source file 'main.cpp')
+  
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         with
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:             T=float
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         ]
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         and
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         [
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:             T=int
+D:\Projects\TOWER_DEFENSE-Quan\Entity.h(178,39): warning C4244:         ]
+  (compiling source file 'main.cpp')
+  
+  Generating Code...
+  SFML game.vcxproj -> D:\Projects\TOWER_DEFENSE-Quan\x64\Debug\SFML game.exe
