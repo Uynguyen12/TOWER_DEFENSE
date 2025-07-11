@@ -1,10 +1,13 @@
-#pragma once
+﻿#ifndef GAME_H  
+#define GAME_H  
+
 #include <SFML/Graphics.hpp>
 #include "Entity.h"
 #include "TileOptions.h"
 #include <vector>
 #include <string>
 #include <iostream>
+#include "MenuManager.h"
 using namespace std;
 
 class Game {
@@ -30,6 +33,16 @@ public:
 	};
 
 	void run();
+
+	// Menu functions
+	void StartGame(int level);
+	void ReturnToMenu();
+	void ExitGame();
+
+	// Volume control
+	void SetMusicVolume(float volume);
+	void SetSoundVolume(float volume);
+
 private:
 	void UpdatePlay();
 	void UpdateTower();
@@ -39,19 +52,24 @@ private:
 
 	void UpdatePhysics();
 private:
-	void ProcessCollision(Entity &entity1, Entity &entity2);
+	void ProcessCollision(Entity& entity1, Entity& entity2);
 	bool isColiding(const Entity& entity1, const Entity& entity2);
 public:
 	void Draw();
+	void DrawMenu();
 	void DrawPlay();
 	void DrawLevelEditor();
 
+	void HandleMenuInput(sf::Event& event);
 	void HandlePlayInput();
 	void HandleLevelEditorInput();
 	void HandleInput();
+	void HandleGameInput(sf::Event& event);
+	void HandleKeyboardInput();
+	void ResetGameState();
 
 	//Level Editor functions
-	void CreateTileAtPosition(const sf::Vector2f& pos) ;
+	void CreateTileAtPosition(const sf::Vector2f& pos);
 	void DeleteTileAtPosition(const sf::Vector2f& pos);
 	void ConstructionPath();
 	vector<Entity>& GetListOfTiles(TileOptions::TileType eTileType);
@@ -61,6 +79,7 @@ public:
 	bool CanPlaceTowerAtPosition(const sf::Vector2f& pos);
 
 	void AddGold(int gold);
+
 private:
 	sf::RenderWindow m_Window;
 	sf::Time m_deltaTime;
@@ -105,10 +124,18 @@ private:
 	int m_iPlayerHealth;
 	int m_iPlayerGold;
 	int m_iGoldGainedThisUpdate;
+	int m_iCurrentLevel;
 	float m_fTimeInPlayMode;
 	float m_fDifficulty;
 	float m_fGoldPerSecond;
 	float m_fGoldPerSecondTimer;
+
+	// Game state
+	bool m_bGameRunning;
+
+	// Sound related
+	bool m_bGameOverSoundPlayed;
+
 private:
 	//PathFinding
 	typedef vector<PathTile> Path;
@@ -117,4 +144,9 @@ private:
 	bool DoesPathContainCoordinates(const Path& path, const sf::Vector2i& coordinates);
 
 	vector<Path> m_Paths;
+
+	// Menu manager
+	MenuManager m_MenuManager;
 };
+
+#endif // GAME_H
