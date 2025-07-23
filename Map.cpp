@@ -1,6 +1,8 @@
 ﻿#include "Map.h"
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 Map::Map() {
 }
@@ -245,12 +247,11 @@ void Map::DrawLevelEditor(sf::RenderWindow& window, int optionIndex, const sf::V
     window.draw(tilePreview);
 }
 
-void Map::PopulateFromMapGrid(const MapGrid& mapGrid) {
+void Map::PopulateFromMatrix() {
     ClearTiles(); // Xóa sạch bản đồ cũ
 
     // Sử dụng TileOptions::SIZE làm kích thước của mỗi ô
     const float tileSize = TileOptions::SIZE;
-    const auto& nodeMatrix = mapGrid.getNodeMatrix();
 
     // --- Chuẩn bị cho việc tìm kiếm TileOptions nhanh hơn ---
     // Nếu m_TileOptions lớn, nên có một map để truy cập nhanh
@@ -260,9 +261,9 @@ void Map::PopulateFromMapGrid(const MapGrid& mapGrid) {
     }
     // --- Hết chuẩn bị ---
 
-    for (int y = 0; y < mapGrid.getHeight(); ++y) {
-        for (int x = 0; x < mapGrid.getWidth(); ++x) {
-            TileOptions::TileType type = nodeMatrix[y][x];
+    for (int y = 0; y < m_NodeMatrix.size(); ++y) {
+        for (int x = 0; x <m_NodeMatrix[0].size(); ++x) {
+            TileOptions::TileType type = m_NodeMatrix[y][x];
 
             // Sử dụng map để tìm TileOptions
             auto it = tileOptionLookup.find(type);
@@ -342,4 +343,36 @@ void Map::AddEndTile(const Entity& tile) {
 }
 void Map::AddPathTile(const Entity& tile) {
     m_PathTiles.push_back(tile);
+}
+
+void Map::loadMapDataFromFile(const std::string& filePath) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open map file: " + filePath);
+    }
+
+    m_NodeMatrix.clear();
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string segment;
+        std::vector<TileOptions::TileType> row;
+
+        while (std::getline(ss, segment, ' ')) {
+            try {
+                int tileTypeInt = std::stoi(segment);
+                if (tileTypeInt >= static_cast<int>(TileOptions::TileType::Null) && tileTypeInt < static_cast<int>(TileOptions::TileType::NumTileTypes)) {
+                    row.push_back(static_cast<TileOptions::TileType>(tileTypeInt));
+                }
+                else {
+                    row.push_back(TileOptions::TileType::Null);
+                }
+            }
+            catch (...) { // Catch all exceptions from stoi for simplicity here
+                row.push_back(TileOptions::TileType::Null);
+            }
+        }
+        m_NodeMatrix.push_back(row);
+    }
+    file.close();
 }

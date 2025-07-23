@@ -123,7 +123,6 @@ private:
 
     // Map system
     Map m_Map;
-    MapGrid m_MapGrid; // Cần MapGrid để Map nạp dữ liệu
 
     // Menu manager
     MenuManager m_MenuManager;

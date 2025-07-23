@@ -6,6 +6,7 @@
 #include "TileOptions.h"
 #include <vector>
 #include "MapGrid.h"
+#include <string>
 
 class Map {
 public:
@@ -48,13 +49,15 @@ public:
     void DrawLevelEditor(sf::RenderWindow& window, int optionIndex, const sf::Vector2f& mousePos) const;
 
 	// Poulate map from MapGrid
-    void PopulateFromMapGrid(const MapGrid& mapGrid);
+    void PopulateFromMatrix();
     void ClearTiles();
     void AddAestheticTile(const Entity& tile);
     void AddSpawnTile(const Entity& tile);
     void AddEndTile(const Entity& tile);
     void AddPathTile(const Entity& tile);
 
+    // Load matrix
+    void loadMapDataFromFile(const std::string& levelFileName);
 
 private:
     // Pathfinding helpers
@@ -73,6 +76,9 @@ private:
 
     // Pathfinding
     std::vector<Path> m_Paths;
+    
+	// Node matrix for tile types
+    std::vector<std::vector<TileOptions::TileType>> m_NodeMatrix;
 };
 
 #endif // MAP_H

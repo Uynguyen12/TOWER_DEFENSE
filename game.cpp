@@ -135,10 +135,10 @@ void Game::LoadLevel(int level) {
         m_Map.Initialize("image/TileMap.png"); // Gọi Initialize của Map
 
         // 2. Nạp dữ liệu cấu trúc level vào MapGrid
-        m_MapGrid.loadMapDataFromFile(levelFileName); // Sử dụng MapGrid để đọc file
+        m_Map.loadMapDataFromFile(levelFileName); // Sử dụng MapGrid để đọc file
 
         // 3. Populate Map từ MapGrid đã nạp
-        m_Map.PopulateFromMapGrid(m_MapGrid); // Chuyển dữ liệu từ MapGrid sang Map
+        m_Map.PopulateFromMatrix(); // Chuyển dữ liệu từ MapGrid sang Map
 
         // 4. Xây dựng đường đi (nếu cần cho Pathfinding)
         m_Map.ConstructPath();
