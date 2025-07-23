@@ -1,120 +1,135 @@
-#pragma once
+﻿
+#ifndef GAME_H
+#define GAME_H
+
 #include <SFML/Graphics.hpp>
 #include "Entity.h"
 #include "TileOptions.h"
+#include "Map.h"
 #include <vector>
 #include <string>
 #include <iostream>
+#include "MenuManager.h"
+#include "MapGrid.h"
+#include <map> // Cần cho map trong Game
+
 using namespace std;
 
 class Game {
 public:
-	Game();
-	~Game();
+    Game();
+    ~Game();
 
-	enum GameMode {
-		Play,
-		LevelEditor
-	};
+    enum GameMode {
+        Play,
+        LevelEditor
+    };
 
-	//Scroll wheel values
-	enum ScrollWheel {
-		ScrollUp,
-		ScrollDown,
-		None
-	};
+    // Scroll wheel values
+    enum ScrollWheel {
+        ScrollUp,
+        ScrollDown,
+        None
+    };
 
-	struct PathTile {
-		const Entity* pCurrentTile;
-		const Entity* pNextTile;
-	};
+    void run();
 
-	void run();
+    // Menu functions
+    void StartGame(int level); // Giữ nguyên signature, nhưng implementation sẽ thay đổi
+    void ReturnToMenu();
+    void ExitGame();
+
+    // Volume control
+    void SetMusicVolume(float volume);
+    void SetSoundVolume(float volume);
+
 private:
-	void UpdatePlay();
-	void UpdateTower();
-	void UpdateAxe();
-	void CheckForDeletionRequest();
-	void UpdateLevelEditor();
+    // Update functions
+    void UpdatePlay();
+    void UpdateTower();
+    void UpdateAxe();
+    void CheckForDeletionRequest();
+    void UpdateLevelEditor();
+    void UpdatePhysics();
 
-	void UpdatePhysics();
-private:
-	void ProcessCollision(Entity &entity1, Entity &entity2);
-	bool isColiding(const Entity& entity1, const Entity& entity2);
+    // Collision functions
+    void ProcessCollision(Entity& entity1, Entity& entity2);
+    bool isColiding(const Entity& entity1, const Entity& entity2);
+
 public:
-	void Draw();
-	void DrawPlay();
-	void DrawLevelEditor();
+    // Draw functions
+    void Draw();
+    void DrawMenu(); // Dùng MenuManager
+    void DrawPlay();
+    void DrawLevelEditor();
+	void UpdatePlayerText(); // Cập nhật text hiển thị thông tin người chơi
 
-	void HandlePlayInput();
-	void HandleLevelEditorInput();
-	void HandleInput();
+    // Input handling
+    void HandleInput();
+    void HandleGameInput(sf::Event& event);
+    void HandleKeyboardInput();
+    void HandlePlayInput();
+    void HandleLevelEditorInput();
 
-	//Level Editor functions
-	void CreateTileAtPosition(const sf::Vector2f& pos) ;
-	void DeleteTileAtPosition(const sf::Vector2f& pos);
-	void ConstructionPath();
-	vector<Entity>& GetListOfTiles(TileOptions::TileType eTileType);
+    // Game state management
+    void ResetGameState();
+    void LoadLevel(int level); // Hàm mới để tải dữ liệu level cụ thể
 
-	// Play functions
-	bool CreateTowerAtPosition(const sf::Vector2f& pos);
-	bool CanPlaceTowerAtPosition(const sf::Vector2f& pos);
-
-	void AddGold(int gold);
+    // Tower/Game logic
+    bool CreateTowerAtPosition(const sf::Vector2f& pos);
+    bool CanPlaceTowerAtPosition(const sf::Vector2f& pos);
+    void AddGold(int gold);
 private:
-	sf::RenderWindow m_Window;
-	sf::Time m_deltaTime;
-	GameMode m_eGameMode;
+    sf::RenderWindow m_Window;
+    sf::Time m_deltaTime;
+    GameMode m_eGameMode;
 
-	//Play mode
-	sf::Texture towerTexture;
-	sf::Texture enemyTexture;
-	sf::Texture axeTexture;
+    // Play mode specific
+    sf::Texture towerTexture;
+    sf::Texture enemyTexture;
+    sf::Texture axeTexture;
 
-	Entity m_TowerTemplate;
-	vector <Entity> m_Towers;
+    Entity m_TowerTemplate;
+    vector <Entity> m_Towers;
 
-	Entity m_enemyTemplate;
-	vector<Entity> m_enemies;
+    Entity m_enemyTemplate;
+    vector<Entity> m_enemies;
 
-	Entity m_axeTemplate;
-	vector<Entity> m_axes;
+    Entity m_axeTemplate;
+    vector<Entity> m_axes;
 
-	//vector <Entity*> m_AllEntities;
+    sf::Text m_GameModeText;
+    sf::Font m_Font;
+    sf::Text m_PlayerText;
+    sf::Text m_GameOverText;
 
-	sf::Text m_GameModeText;
-	sf::Font m_Font;
-	sf::Text m_PlayerText;
-	sf::Text m_GameOverText;
+    // Level Editor Mode specific
+    int m_optionIndex;
+    ScrollWheel m_eScrollWheelInput;
 
-	//Level Editor Mode
-	int m_optionIndex;
-	ScrollWheel m_eScrollWheelInput;
+    // Gameplay variables
+    int m_iPlayerHealth;
+    int m_iPlayerGold;
+    int m_iGoldGainedThisUpdate;
+    int m_iCurrentLevel; // Biến lưu level hiện tại đang chơi
+    float m_fTimeInPlayMode;
+    float m_fDifficulty;
+    float m_fGoldPerSecond;
+    float m_fGoldPerSecondTimer;
 
-	sf::Texture m_TileMapTexture;
-	// TODO: these need to be entities, not sprites
-	vector <TileOptions> m_TileOptions;
-	vector <Entity> m_AestheticTiles;
-	vector <Entity> m_SpawnTiles;
-	vector <Entity> m_EndTiles;
-	vector <Entity> m_PathTiles;
+    // Game state
+    bool m_bGameRunning;
+    bool m_bGameOverSoundPlayed; // Đã phát âm thanh game over chưa
 
-	bool m_bDrawPath;
+    // Map system
+    Map m_Map;
+    MapGrid m_MapGrid; // Cần MapGrid để Map nạp dữ liệu
 
-	//GamePlay variables
-	int m_iPlayerHealth;
-	int m_iPlayerGold;
-	int m_iGoldGainedThisUpdate;
-	float m_fTimeInPlayMode;
-	float m_fDifficulty;
-	float m_fGoldPerSecond;
-	float m_fGoldPerSecondTimer;
-private:
-	//PathFinding
-	typedef vector<PathTile> Path;
+    // Menu manager
+    MenuManager m_MenuManager;
 
-	void VisitPathNeighbors(Path path, const sf::Vector2i& rEndCoords);
-	bool DoesPathContainCoordinates(const Path& path, const sf::Vector2i& coordinates);
 
-	vector<Path> m_Paths;
 };
+
+#endif // GAME_H
+
