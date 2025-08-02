@@ -8,7 +8,6 @@
 #include "DamageTextManager.h"
 #include "SoundManager.h"
 #include "MenuManager.h"
-#include "MapGrid.h"
 
 Game::Game()
     : m_Window(sf::VideoMode({ 1920, 1040 }), "SFML window")
@@ -118,18 +117,13 @@ void Game::run() {
 
 void Game::LoadLevel(int level) {
     std::string levelFileName = "levels/level" + std::to_string(level) + ".txt";
+    std::string mapImageFile = "image/map" + std::to_string(level) + ".png";
 
     try {
-        m_Map.Initialize("image/TileMap.png");
         m_MapGrid.loadMapDataFromFile(levelFileName);
-        m_Map.PopulateFromMapGrid(m_MapGrid);
-        m_Map.ConstructPath();
-
+        m_Map.Initialize(mapImageFile);
+        m_Map.ConstructPath(m_MapGrid);
         std::cout << "Level " << level << " loaded successfully from " << levelFileName << std::endl;
-        std::cout << "Aesthetic tiles count: " << m_Map.GetListOfTiles(TileOptions::TileType::Aesthetic).size() << std::endl;
-        std::cout << "Spawn tiles count: " << m_Map.GetListOfTiles(TileOptions::TileType::Spawn).size() << std::endl;
-        std::cout << "End tiles count: " << m_Map.GetListOfTiles(TileOptions::TileType::End).size() << std::endl;
-        std::cout << "Path tiles count: " << m_Map.GetListOfTiles(TileOptions::TileType::Path).size() << std::endl;
     }
     catch (const std::runtime_error& e) {
         std::cerr << "Error loading level " << level << ": " << e.what() << std::endl;
@@ -162,13 +156,21 @@ void Game::UpdatePlay() {
     UpdateAxe();
 
     const int iMaxEnemies = 30;
-    const std::vector<Entity>& spawnTiles = m_Map.GetSpawnTiles();
-    const std::vector<Map::Path>& paths = m_Map.GetPaths();
+    const auto& nodeMatrix = m_MapGrid.getNodeMatrix();
+    sf::Vector2i spawnCoords(-1, -1);
+    for (int y = 0; y < m_MapGrid.getHeight(); ++y) {
+        for (int x = 0; x < m_MapGrid.getWidth(); ++x) {
+            if (nodeMatrix[y][x] == MapGrid::TileType::Spawn) {
+                spawnCoords = sf::Vector2i(x, y);
+                break;
+            }
+        }
+        if (spawnCoords != sf::Vector2i(-1, -1)) break;
+    }
 
-    std::cout << "Spawn tiles count: " << spawnTiles.size() << std::endl;
-    std::cout << "Paths count: " << paths.size() << std::endl;
-    if (spawnTiles.size() > 0 && !paths.empty()) {
-        m_enemyTemplate.SetPosition(spawnTiles[0].GetPosition());
+    const std::vector<Map::Path>& paths = m_Map.GetPaths();
+    if (spawnCoords != sf::Vector2i(-1, -1) && !paths.empty()) {
+        m_enemyTemplate.SetPosition(sf::Vector2f(spawnCoords.x * 80.0f + 40.0f, spawnCoords.y * 80.0f + 40.0f));
         if (m_enemies.size() < iMaxEnemies) {
             static float fSpawnTimer = 0.0f;
             float fSpawnRate = m_fDifficulty;
@@ -181,18 +183,27 @@ void Game::UpdatePlay() {
         }
     }
 
-    const std::vector<Entity>& endTiles = m_Map.GetEndTiles();
+    sf::Vector2i endCoords(-1, -1);
+    for (int y = 0; y < m_MapGrid.getHeight(); ++y) {
+        for (int x = 0; x < m_MapGrid.getWidth(); ++x) {
+            if (nodeMatrix[y][x] == MapGrid::TileType::End) {
+                endCoords = sf::Vector2i(x, y);
+                break;
+            }
+        }
+        if (endCoords != sf::Vector2i(-1, -1)) break;
+    }
+
     for (int i = m_enemies.size() - 1; i >= 0; --i) {
         Entity& rEnemy = m_enemies[i];
-
-        std::cout << "Processing enemy " << i << " at position (" << rEnemy.GetPosition().x << ", " << rEnemy.GetPosition().y << ")" << std::endl;
         const Map::Path& path = paths[rEnemy.GetPathIndex()];
 
         const Map::PathTile* pClosestTile = nullptr;
         float fClosestDistance = std::numeric_limits<float>::max();
 
         for (const Map::PathTile& tile : path) {
-            sf::Vector2f vEnemyToTile = tile.pCurrentTile->GetPosition() - rEnemy.GetPosition();
+            sf::Vector2f tilePos(tile.coords.x * 80.0f + 40.0f, tile.coords.y * 80.0f + 40.0f);
+            sf::Vector2f vEnemyToTile = tilePos - rEnemy.GetPosition();
             float fDistance = MathHelpers::flength(vEnemyToTile);
 
             if (fDistance < fClosestDistance) {
@@ -201,10 +212,10 @@ void Game::UpdatePlay() {
             }
         }
 
-        if (!pClosestTile || !pClosestTile->pNextTile) continue;
-        const Entity* pNextTile = pClosestTile->pNextTile;
+        if (!pClosestTile) continue;
+        sf::Vector2f nextTilePos(pClosestTile->nextCoords.x * 80.0f + 40.0f, pClosestTile->nextCoords.y * 80.0f + 40.0f);
 
-        if (endTiles.size() > 0 && pNextTile->GetClosestGridCoordinates() == endTiles[0].GetClosestGridCoordinates()) {
+        if (endCoords != sf::Vector2i(-1, -1) && pClosestTile->nextCoords == endCoords) {
             if (fClosestDistance < 40.0f) {
                 m_enemies.erase(m_enemies.begin() + i);
                 m_iPlayerHealth--;
@@ -214,7 +225,7 @@ void Game::UpdatePlay() {
         }
 
         float fEnemySpeed = 250.0f;
-        sf::Vector2f vEnemyToNextTile = pNextTile->GetPosition() - rEnemy.GetPosition();
+        sf::Vector2f vEnemyToNextTile = nextTilePos - rEnemy.GetPosition();
         vEnemyToNextTile = MathHelpers::normalize(vEnemyToNextTile);
         rEnemy.SetVelocity(vEnemyToNextTile * fEnemySpeed);
     }
@@ -314,15 +325,12 @@ void Game::UpdatePhysics() {
     const float fDeltaTime = std::min(m_deltaTime.asSeconds(), fMaxDeltaTime);
 
     std::vector<Entity*> AllEntities;
-
     for (Entity& tower : m_Towers) {
         AllEntities.push_back(&tower);
     }
-
     for (Entity& enemy : m_enemies) {
         AllEntities.push_back(&enemy);
     }
-
     for (Entity& axe : m_axes) {
         AllEntities.push_back(&axe);
     }
@@ -343,7 +351,6 @@ void Game::UpdatePhysics() {
                 if (!entity->GetPhysicsDataNonConst().HasCollidedThisUpdate(otherEntity) && isColiding(*entity, *otherEntity)) {
                     entity->OnCollision(*otherEntity);
                     otherEntity->OnCollision(*entity);
-
                     entity->GetPhysicsDataNonConst().AddEntityCollision(otherEntity);
                     otherEntity->GetPhysicsDataNonConst().AddEntityCollision(entity);
                 }
@@ -548,7 +555,7 @@ void Game::Draw() {
         m_MenuManager.Draw(m_Window);
     }
     else {
-        m_Map.DrawTiles(m_Window);
+        m_Map.Draw(m_Window);
         m_Window.draw(m_GameModeText);
         m_Window.draw(m_PlayerText);
         DrawPlay();
@@ -705,39 +712,17 @@ bool Game::CreateTowerAtPosition(const sf::Vector2f& pos) {
 }
 
 bool Game::CanPlaceTowerAtPosition(const sf::Vector2f& pos) {
-    sf::IntRect wallRect(0, 0, 16, 16);
-    vector<Entity>& ListOfTiles = m_Map.GetListOfTiles(TileOptions::TileType::Aesthetic);
-    bool isOnWall = false;
-    Entity copyOfTowerWithRadiusOf1 = m_TowerTemplate;
-    copyOfTowerWithRadiusOf1.setCirclePhysics(1.0f);
-    copyOfTowerWithRadiusOf1.SetPosition(pos);
+    int gridX = static_cast<int>(pos.x / 80.0f);
+    int gridY = static_cast<int>(pos.y / 80.0f);
 
-    std::cout << "Checking tower placement at position: (" << pos.x << ", " << pos.y << ")" << std::endl;
-    std::cout << "Number of Aesthetic tiles: " << ListOfTiles.size() << std::endl;
-
-    for (const Entity& tile : ListOfTiles) {
-        const sf::Sprite& rTileSprite = tile.GetSprite();
-        sf::IntRect tileRect = rTileSprite.getTextureRect();
-        std::cout << "Tile texture rect: (" << tileRect.left << ", " << tileRect.top << ", " << tileRect.width << ", " << tileRect.height << ")" << std::endl;
-
-        if (tileRect != wallRect) {
-            std::cout << "Tile is not a wall, skipping..." << std::endl;
-            continue;
-        }
-
-        std::cout << "Found wall tile, checking collision..." << std::endl;
-        if (isColiding(tile, copyOfTowerWithRadiusOf1)) {
-            std::cout << "Tower is on wall!" << std::endl;
-            isOnWall = true;
-            break;
-        }
-        else {
-            std::cout << "Tower is not colliding with this wall tile" << std::endl;
-        }
+    if (gridX < 0 || gridX >= m_MapGrid.getWidth() || gridY < 0 || gridY >= m_MapGrid.getHeight()) {
+        std::cout << "Position out of bounds: (" << pos.x << ", " << pos.y << ")" << std::endl;
+        return false;
     }
 
-    if (!isOnWall) {
-        std::cout << "Tower is not on any wall, cannot place" << std::endl;
+    const auto& nodeMatrix = m_MapGrid.getNodeMatrix();
+    if (nodeMatrix[gridY][gridX] != MapGrid::TileType::Aesthetic) {
+        std::cout << "Cannot place tower: not on aesthetic tile at (" << gridX << ", " << gridY << ")" << std::endl;
         return false;
     }
 
@@ -751,7 +736,7 @@ bool Game::CanPlaceTowerAtPosition(const sf::Vector2f& pos) {
         }
     }
 
-    std::cout << "Tower can be placed successfully!" << std::endl;
+    std::cout << "Tower can be placed successfully at (" << pos.x << ", " << pos.y << ")" << std::endl;
     return true;
 }
 

@@ -3,16 +3,11 @@
 
 #include <SFML/Graphics.hpp>
 #include "Entity.h"
-#include "TileOptions.h"
 #include "Map.h"
+#include "MapGrid.h"
 #include <vector>
 #include <string>
-#include <iostream>
 #include "MenuManager.h"
-#include "MapGrid.h"
-#include <map>
-
-using namespace std;
 
 class Game {
 public:
@@ -46,17 +41,15 @@ private:
     void ProcessCollision(Entity& entity1, Entity& entity2);
     bool isColiding(const Entity& entity1, const Entity& entity2);
 
-public:
     // Draw functions
     void Draw();
     void DrawPlay();
     void UpdatePlayerText();
 
-    // Input handling - only for game controls, no tile placement
+    // Input handling
     void HandleInput();
     void HandleGameInput(sf::Event& event);
     void HandleKeyboardInput();
-    void HandlePlayInput();
 
     // Game state management
     void ResetGameState();
@@ -78,13 +71,13 @@ private:
     sf::Texture axeTexture;
 
     Entity m_TowerTemplate;
-    vector <Entity> m_Towers;
+    std::vector<Entity> m_Towers;
 
     Entity m_enemyTemplate;
-    vector<Entity> m_enemies;
+    std::vector<Entity> m_enemies;
 
     Entity m_axeTemplate;
-    vector<Entity> m_axes;
+    std::vector<Entity> m_axes;
 
     sf::Text m_GameModeText;
     sf::Font m_Font;
@@ -105,7 +98,7 @@ private:
     bool m_bGameRunning;
     bool m_bGameOverSoundPlayed;
 
-    // Map system - only for display, no editing
+    // Map system
     Map m_Map;
     MapGrid m_MapGrid;
 
