@@ -19,10 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <None Include="profiles.json" />
+    <None Include="README.md" />
+    <None Include="settings.json" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="DamageTextManager.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="MapGrid.cpp" />
     <ClCompile Include="MenuManager.cpp" />
     <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="TileOptions.cpp" />
@@ -31,13 +38,12 @@
     <ClInclude Include="DamageTextManager.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="game.h" />
+    <ClInclude Include="Map.h" />
+    <ClInclude Include="MapGrid.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="MenuManager.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="TileOptions.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="profiles.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

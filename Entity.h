@@ -85,7 +85,7 @@ public:
 		vector<Entity*> m_EntitiesToIgnore;
 		vector<Entity*> m_EntitiesThatCollidedWithAlready;
 	};
-
+	
 	Entity(PhysicsData::Type ePhysicsType);
 	~Entity() {};
 
@@ -111,7 +111,7 @@ public:
 			}
 		}
 
-		if (entity->GetPhysicsData().IsInAnyLayer(m_PhysicsData.getLayersToIgnore())) {
+		if (entity -> GetPhysicsData().IsInAnyLayer(m_PhysicsData.getLayersToIgnore())) {
 			return true;
 		}
 		return false;
@@ -166,7 +166,7 @@ public:
 	}
 
 	sf::Vector2i GetClosestGridCoordinates() const {
-		return sf::Vector2i(GetPosition().x / 160, GetPosition().y / 160);
+		return sf::Vector2i(GetPosition().x / 80, GetPosition().y / 80);
 	}
 
 	PhysicsData::Type GetPhysicsShapeType() const {
@@ -176,7 +176,7 @@ public:
 	const PhysicsData& GetPhysicsData() const {
 		return m_PhysicsData;
 	}
-
+	
 	PhysicsData& GetPhysicsDataNonConst() {
 		return m_PhysicsData;
 	}

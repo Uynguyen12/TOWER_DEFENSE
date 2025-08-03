@@ -1,0 +1,363 @@
+﻿#pragma once
+#include <SFML/Graphics.hpp>
+#include <vector>
+#include <string>
+#include "Entity.h"
+#include <functional>
+
+
+class MenuManager {
+public:
+    enum class MenuState {
+        ProfileMenu,
+        CreateProfile,
+        ChooseProfile,
+        MainMenu,
+        PlayMenu,
+        GamePlay,
+        PauseMenu,
+        Settings,
+        MusicSettings,
+        ConfigSettings,
+    };
+
+    enum class ButtonState {
+        Normal,
+        Hovered,
+        Pressed
+    };
+
+    enum class SettingsTab {
+        Music,
+        Configuration
+    };
+
+    struct TabButton {
+        sf::Text text;
+        sf::RectangleShape underline;
+        bool isActive;
+        std::function<void()> callback;
+
+        TabButton() : isActive(false) {}
+    };
+
+    enum class ButtonStyle {
+        Shield,      // Khiên
+        Scroll,      // Cuộn giấy
+        WoodPlank,   // Bảng gỗ
+        Stone        // Đá cổ
+    };
+
+    // Button icon enum
+    enum class ButtonIcon {
+        None,
+        Shield,      // 🏰 New Profile
+        Sword,       // 🛡️ Play as Guest  
+        Gear,        // ⚙️ Settings
+        Scroll,      // 📜 Back/Exit
+        Crown,       // 👑 Main Menu
+        Target       // 🎯 Play
+    };
+
+    struct Button {
+        sf::RectangleShape shape;
+        sf::Text text;
+        sf::Text textShadow;
+        std::function<void(sf::RenderWindow&)> callback;
+        ButtonState state;
+        ButtonStyle style;
+        ButtonIcon icon;
+        sf::CircleShape decorativeGem;
+        std::vector<sf::CircleShape> rivets;
+
+        bool isVisible;
+        bool isDeleteButton;
+
+        Button() : state(ButtonState::Normal), isVisible(true), isDeleteButton(false) {}
+        Button() : state(ButtonState::Normal), isVisible(true), isDeleteButton(false),
+            style(ButtonStyle::Shield), icon(ButtonIcon::None) {
+        }
+    };
+
+  
+
+    struct Slider {
+        sf::RectangleShape track;
+        sf::RectangleShape handle;
+        sf::Text label;
+        float value; // 0.0f to 100.0f
+        float minValue;
+        float maxValue;
+        bool isDragging;
+        bool isVisible;
+        std::function<void(float)> callback;
+
+        Slider() : value(50.0f), minValue(0.0f), maxValue(100.0f), isDragging(false), isVisible(true) {}
+    };
+
+    // Thêm struct cho cài đặt
+    struct GameSettings {
+        float musicVolume = 50.0f;
+        float sfxVolume = 50.0f;
+        sf::Vector2u resolution = { 1920, 1080 };
+        bool fullscreen = false;
+    };
+
+    struct TowerData {
+        int x, y;
+        int type;
+        int level;
+    };
+
+    struct PathPoint {
+        int x, y;
+    };
+
+    struct PlayerProfile {
+        std::string name;
+        int level = 1;
+        int experience = 0;
+        int highScore = 0;
+        int savedLevel = 1;
+        float savedDifficulty = 1.0f;
+        int savedGold = 10;
+
+        // New fields for saving game state
+        std::vector<TowerData> savedTowers;
+        std::vector<std::vector<int>> savedMapLayout;
+        std::vector<PathPoint> savedEnemyPath;
+
+        PlayerProfile() = default;
+        PlayerProfile(const std::string& playerName) : name(playerName) {}
+    };
+
+public:
+    MenuManager();
+    ~MenuManager();
+
+    void Initialize(sf::RenderWindow& window);
+    void Update(sf::RenderWindow& window, float deltaTime);
+    void Draw(sf::RenderWindow& window);
+    void HandleInput(sf::Event& event, sf::RenderWindow& window);
+    void ReturnToMenu();
+    void DrawPauseMenu(sf::RenderWindow& window); // Added sf::RenderWindow& parameter
+    void TogglePauseMenu();
+    void CreatePauseMenu();
+    bool IsGamePaused() const;
+
+    // Menu state management
+    void SetMenuState(MenuState newState);
+    MenuState GetMenuState() const { return m_currentState; }
+    bool IsInGamePlay() const { return m_currentState == MenuState::GamePlay; }
+
+    // Profile management
+    void CreateNewProfile(const std::string& name);
+    void SelectProfile(int index);
+    void DeleteProfile(int index);
+    const PlayerProfile* GetCurrentProfile() const { return m_currentProfile; }
+    const std::vector<PlayerProfile>& GetProfiles() const { return m_profiles; }
+
+    // Profile save/load functions
+    void SaveProfilesToFile();
+    void LoadProfilesFromFile();
+    void ApplyResolution(sf::RenderWindow& window);
+
+    // Settings management - Thêm các hàm mới
+    const GameSettings& GetSettings() const { return m_settings; }
+    void SaveSettingsToFile();
+    void LoadSettingsFromFile();
+
+    // Input handling for profile creation
+    void SetWaitingForInput(bool waiting) { m_waitingForNameInput = waiting; }
+    bool IsWaitingForInput() const { return m_waitingForNameInput; }
+    void HandleTextInput(sf::Uint32 unicode);
+    void ClearInputText();
+    void SetExitCallback(std::function<void(sf::RenderWindow&)> callback) { m_exitCallback = callback; }
+    void SetStartGameCallback(std::function<void(int)> callback);
+    void SetResolutionChangeCallback(std::function<void(sf::Vector2u)> callback) { m_resolutionChangeCallback = callback; }
+
+    // Audio callbacks - Thêm callbacks cho audio
+    void SetMusicVolumeCallback(std::function<void(float)> callback) { m_musicVolumeCallback = callback; }
+    void SetSFXVolumeCallback(std::function<void(float)> callback) { m_sfxVolumeCallback = callback; }
+    void SetBackgroundMusicVolumeCallback(std::function<void(float)> callback) { m_backgroundMusicVolumeCallback = callback; } // Added
+
+private:
+    // Menu creation functions
+    void CreateProfileMenu();
+    void CreateChooseProfileMenu();
+    void CreateNewProfileMenu();
+    void CreateMainMenu();
+    void CreatePlayMenu();
+    void CreateSettingsMenu(); // Thêm hàm tạo settings menu
+    void CreateSettingsContent();
+    void CreateTabButton(const std::string& text, sf::Vector2f position,
+        SettingsTab tab, std::function<void()> callback);
+    void UpdateTabButtons(sf::RenderWindow& window);
+    void DrawTabButtons(sf::RenderWindow& window);
+    void SetActiveTab(SettingsTab tab);
+
+    void CreateGradientBackground();
+    void CreateEnhancedButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback, bool isDeleteButton = false);
+    void CenterTextWithShadow(sf::Text& text, sf::Text& shadow, const sf::RectangleShape& shape);
+    void DrawBackgroundParticles(sf::RenderWindow& window);
+    void DrawInputCursor(sf::RenderWindow& window);
+    void DrawWarningWithBackground(sf::RenderWindow& window);
+
+    // Button management
+    void CreateButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback, bool isDropdownButton = false);
+    void CreateDeleteButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback);
+    void CreatePauseButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback);
+
+    void UpdateButtons(sf::RenderWindow& window);
+    void DrawButtons(sf::RenderWindow& window);
+    bool IsMouseOverButton(const Button& button, sf::Vector2f mousePos);
+
+    // Helper methods for resolution dropdown
+    void UpdateResolutionScroll(float deltaTime);
+    void UpdateVisibleResolutions();
+
+    // Slider management - Thêm các hàm quản lý slider
+    void CreateSlider(const std::string& label, sf::Vector2f position, float value,
+        std::function<void(float)> callback);
+    void UpdateSliders(sf::RenderWindow& window);
+    void DrawSliders(sf::RenderWindow& window);
+    void DrawResolutionDropdown(sf::RenderWindow& window);
+    void DrawScrollbar(sf::RenderWindow& window, sf::Vector2f dropdownPos,
+    float dropdownWidth, float dropdownHeight, int scrollIndex, int maxScroll);
+    bool IsMouseOverSlider(const Slider& slider, sf::Vector2f mousePos);
+    void UpdateSliderValue(Slider& slider, sf::Vector2f mousePos);
+    void HandleResolutionDropdownClick(sf::Vector2f mousePos, sf::RenderWindow& window);
+
+    // Helper functions
+    void CenterText(sf::Text& text, const sf::RectangleShape& shape);
+    void LoadResources();
+    void ShowWarningMessage(const std::string& message);
+    void UpdateWindowSize(sf::RenderWindow& window);
+    void RecreateCurrentMenuUI();
+
+    // Medieval button drawing functions
+    void DrawMedievalButton(sf::RenderWindow& window, const Button& button);
+    void DrawMedievalCorners(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, ButtonState state);
+    void DrawBeveledEdge(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, ButtonState state);
+    void DrawMetalStuds(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
+    void DrawMagicalGlow(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
+    void DrawSparkleEffect(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
+    void DrawMedievalScrollIndicators(sf::RenderWindow& window);
+    void DrawButtonShadow(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
+    void DrawButtonBase(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawDecorativeFrame(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawTextureOverlay(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawButtonRivets(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawButtonIcon(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawMagicalEffects(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawButtonText(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawDecorativeGem(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+
+private:
+    MenuState m_currentState;
+    MenuState m_previousState;
+
+    // Resources
+    sf::Font m_font;
+    sf::Texture m_backgroundTexture;
+    sf::Sprite m_backgroundSprite;
+
+    // UI Elements
+    std::vector<Button> m_buttons;
+    std::vector<Button> m_pauseButtons; // Added pause buttons vector
+    std::vector<Slider> m_sliders; // Thêm vector sliders
+    sf::Text m_titleText;
+    sf::Text m_warningText;
+    sf::Text m_inputPromptText;
+    sf::Text m_inputText;
+    sf::RectangleShape m_inputBox;
+    sf::RectangleShape m_pauseBackground; // Added missing pause background
+    sf::Vector2f ScalePosition(sf::Vector2f originalPos, sf::Vector2f oldSize, sf::Vector2f newSize);
+    //Background
+    sf::Text m_titleShadow;
+    sf::RectangleShape m_inputBoxGlow;
+    sf::RectangleShape m_backgroundOverlay;
+
+    // Profile management
+    std::vector<PlayerProfile> m_profiles;
+    PlayerProfile* m_currentProfile;
+    std::string m_inputBuffer;
+    bool m_waitingForNameInput;
+    bool m_showWarning;
+    float m_warningTimer;
+    bool m_gamePaused; // Added missing game paused state
+
+
+    float m_resolutionScrollOffset;
+    float m_maxResolutionScroll;
+    
+
+   
+    // Settings - Thêm settings
+    GameSettings m_settings;
+    SettingsTab m_currentSettingsTab;
+    std::vector<TabButton> m_tabButtons;
+    static const sf::Color TAB_ACTIVE_COLOR;
+    static const sf::Color TAB_INACTIVE_COLOR;
+    static const sf::Color TAB_UNDERLINE_COLOR;
+
+    // Callback functions
+    std::function<void(sf::RenderWindow&)> m_exitCallback;
+    std::function<void(int)> m_startGameCallback;
+    std::function<void(sf::Vector2u)> m_resolutionChangeCallback; 
+    std::function<void(float)> m_musicVolumeCallback;
+    std::function<void(float)> m_backgroundMusicVolumeCallback;
+    std::function<void(float)> m_sfxVolumeCallback;
+
+    // UI State
+    sf::Vector2f m_windowSize;
+
+    // Static constants
+    static const sf::Color BUTTON_NORMAL_COLOR;
+    static const sf::Color BUTTON_HOVER_COLOR;
+    static const sf::Color BUTTON_PRESSED_COLOR;
+    static const sf::Color TEXT_COLOR;
+    static const sf::Color DELETE_BUTTON_COLOR;
+    static const sf::Color DELETE_BUTTON_HOVER_COLOR;
+    static const sf::Color SLIDER_TRACK_COLOR; 
+    static const sf::Color SLIDER_HANDLE_COLOR;
+    static const sf::Color SLIDER_HANDLE_HOVER_COLOR;
+    static const sf::Color BACKGROUND_OVERLAY_COLOR;
+    static const sf::Color BUTTON_GRADIENT_START;
+    static const sf::Color BUTTON_GRADIENT_END;
+    static const sf::Color BUTTON_HOVER_GRADIENT_START;
+    static const sf::Color BUTTON_HOVER_GRADIENT_END;
+    static const sf::Color INPUT_BOX_BORDER_COLOR;
+    static const sf::Color INPUT_BOX_FOCUS_COLOR;
+
+    static const sf::Color MEDIEVAL_WOOD_DARK;
+    static const sf::Color MEDIEVAL_WOOD_LIGHT;
+    static const sf::Color MEDIEVAL_STONE_BASE;
+    static const sf::Color MEDIEVAL_GOLD_FRAME;
+    static const sf::Color MEDIEVAL_SILVER_FRAME;
+    static const sf::Color MEDIEVAL_FIRE_GLOW;
+    static const sf::Color MEDIEVAL_MAGIC_GLOW;
+    static const sf::Color MEDIEVAL_TEXT_GOLD;
+    static const sf::Color MEDIEVAL_RIVET_COLOR;
+
+    static const int BUTTON_HEIGHT = 60;
+    static const int BUTTON_WIDTH = 300;
+    static const int BUTTON_SPACING = 80;
+    static const int MAX_PROFILES;
+    static const int MAX_VISIBLE_RESOLUTIONS;
+    static const float RESOLUTION_SCROLL_SPEED;
+
+    // Profile file path
+    static const std::string PROFILES_FILE_PATH;
+    static const std::string SETTINGS_FILE_PATH;
+
+    std::vector<sf::Vector2u> m_availableResolutions;
+    int m_selectedResolutionIndex;
+    Button m_resolutionButton;
+    std::vector<Button> m_resolutionDropdownButtons;
+    bool m_resolutionDropdownOpen;
+};

@@ -20,7 +20,7 @@ void DamageTextManager::Update(sf::Time& rDeltaTime) {
 		if (damageText.m_fRemainingLifeSeconds > 0.0f) {
 			//Fade out the damage text over time
 			float fPercentageThroughLife = damageText.m_fRemainingLifeSeconds / m_fDamageTextLifeInSeconds;
-
+			
 			sf::Color color = damageText.m_Text.getFillColor();
 			color.a = static_cast <sf::Uint8> (255.0f * fPercentageThroughLife);
 
@@ -50,7 +50,7 @@ void DamageTextManager::AddDamageText(int damage, const sf::Vector2f& pos) {
 	text.setOutlineThickness(2.0f);
 	text.setPosition(pos);
 	text.setOrigin(text.getLocalBounds().width / 2.0f, text.getLocalBounds().height / 2.0f);
-
+	
 	DamageText damageText;
 	damageText.m_Text = text;
 	damageText.m_fRemainingLifeSeconds = m_fDamageTextLifeInSeconds;

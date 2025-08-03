@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <SFML/Graphics.hpp>
 #include <cmath>
 
@@ -20,7 +20,7 @@ namespace MathHelpers {
     static sf::Vector2f normalize(const sf::Vector2f& rVector) {
         if (rVector.x == 0 && rVector.y == 0) {
             return rVector; // Avoid division by zero
-        }
+		}
 
         float length = flength(rVector);
         sf::Vector2f vNormalizeVector(rVector.x / length, rVector.y / length);
