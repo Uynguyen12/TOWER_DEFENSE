@@ -68,7 +68,7 @@ private:
     // Play mode specific
     sf::Texture towerTexture;
     sf::Texture enemyTexture;
-    sf::Texture axeTexture;
+    sf::Texture m_bulletTexture;
 
     Entity m_TowerTemplate;
     std::vector<Entity> m_Towers;
@@ -76,7 +76,7 @@ private:
     Entity m_enemyTemplate;
     std::vector<Entity> m_enemies;
 
-    Entity m_axeTemplate;
+    Entity m_bulletTemplate;
     std::vector<Entity> m_axes;
 
     sf::Text m_GameModeText;

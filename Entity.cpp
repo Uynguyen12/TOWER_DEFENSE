@@ -16,7 +16,7 @@ void Entity::OnCollision(Entity& pOtherEntity) {
 		if (GetPhysicsData().IsInAnyLayer(PhysicsData::Layer::Projectile)) {
 			sf::Vector2f direction = pOtherEntity.GetPosition() - GetPosition();
 			direction = MathHelpers::normalize(direction);
-			pOtherEntity.GetPhysicsDataNonConst().AddImpulse(direction * 80.0f);
+			pOtherEntity.GetPhysicsDataNonConst().AddImpulse(direction * 64.0f);
 
 			//Projectile hit the enemy
 			pOtherEntity.DealDamage(1);

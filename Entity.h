@@ -166,7 +166,7 @@ public:
 	}
 
 	sf::Vector2i GetClosestGridCoordinates() const {
-		return sf::Vector2i(GetPosition().x / 80, GetPosition().y / 80);
+		return sf::Vector2i(GetPosition().x / 64, GetPosition().y / 64);
 	}
 
 	PhysicsData::Type GetPhysicsShapeType() const {

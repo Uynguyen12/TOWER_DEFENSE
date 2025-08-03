@@ -14,7 +14,7 @@ Game::Game()
     , m_eGameMode(Play)
     , m_TowerTemplate(Entity::PhysicsData::Type::Static)
     , m_enemyTemplate(Entity::PhysicsData::Type::Dynamic)
-    , m_axeTemplate(Entity::PhysicsData::Type::Dynamic)
+    , m_bulletTemplate(Entity::PhysicsData::Type::Dynamic)
     , m_iPlayerHealth(10)
     , m_iPlayerGold(10)
     , m_fTimeInPlayMode(0.0f)
@@ -59,36 +59,36 @@ Game::Game()
         });
 
     // Load textures for templates
-    if (!towerTexture.loadFromFile("image/player.png")) {
+    if (!towerTexture.loadFromFile("image/sprite/Tower1.png")) {
         throw std::runtime_error("Failed to load player texture from 'image/player.png'");
     }
-    if (!enemyTexture.loadFromFile("image/enemy.png")) {
+    if (!enemyTexture.loadFromFile("image/sprite/Enemy1.png")) {
         throw std::runtime_error("Failed to load enemy texture from 'image/enemy.png'");
     }
-    if (!axeTexture.loadFromFile("image/axe.png")) {
+    if (!m_bulletTexture.loadFromFile("image/sprite/Bullet1.png")) {
         throw std::runtime_error("Failed to load axe texture from 'image/axe.png'");
     }
 
     // Set up templates
     m_TowerTemplate.SetTexture(towerTexture);
-    m_TowerTemplate.SetScale(sf::Vector2f(5, 5));
-    m_TowerTemplate.SetOrigin(sf::Vector2f(8, 8));
-    m_TowerTemplate.setCirclePhysics(40.f);
+    m_TowerTemplate.SetScale(sf::Vector2f(1, 1));
+    m_TowerTemplate.SetOrigin(sf::Vector2f(32, 32));
+    m_TowerTemplate.setCirclePhysics(32.f);
     m_TowerTemplate.GetPhysicsDataNonConst().setLayers(Entity::PhysicsData::Layer::Tower);
 
     m_enemyTemplate.SetTexture(enemyTexture);
-    m_enemyTemplate.SetScale(sf::Vector2f(5, 5));
-    m_enemyTemplate.SetOrigin(sf::Vector2f(8, 8));
-    m_enemyTemplate.setCirclePhysics(40.f);
+    m_enemyTemplate.SetScale(sf::Vector2f(1, 1));
+    m_enemyTemplate.SetOrigin(sf::Vector2f(32, 32));
+    m_enemyTemplate.setCirclePhysics(32.f);
     m_enemyTemplate.GetPhysicsDataNonConst().setLayers(Entity::PhysicsData::Layer::Enemy);
     m_enemyTemplate.SetHealth(3);
 
-    m_axeTemplate.SetTexture(axeTexture);
-    m_axeTemplate.SetScale(sf::Vector2f(5, 5));
-    m_axeTemplate.SetOrigin(sf::Vector2f(8, 8));
-    m_axeTemplate.setCirclePhysics(40.f);
-    m_axeTemplate.GetPhysicsDataNonConst().setLayers(Entity::PhysicsData::Layer::Projectile);
-    m_axeTemplate.GetPhysicsDataNonConst().setLayersToIgnore(Entity::PhysicsData::Layer::Projectile | Entity::PhysicsData::Layer::Tower);
+    m_bulletTemplate.SetTexture(m_bulletTexture);
+    m_bulletTemplate.SetScale(sf::Vector2f(1, 1));
+    m_bulletTemplate.SetOrigin(sf::Vector2f(32, 32));
+    m_bulletTemplate.setCirclePhysics(32.f);
+    m_bulletTemplate.GetPhysicsDataNonConst().setLayers(Entity::PhysicsData::Layer::Projectile);
+    m_bulletTemplate.GetPhysicsDataNonConst().setLayersToIgnore(Entity::PhysicsData::Layer::Projectile | Entity::PhysicsData::Layer::Tower);
 }
 
 Game::~Game() {
@@ -117,7 +117,7 @@ void Game::run() {
 
 void Game::LoadLevel(int level) {
     std::string levelFileName = "levels/level" + std::to_string(level) + ".txt";
-    std::string mapImageFile = "image/map" + std::to_string(level) + ".png";
+    std::string mapImageFile = "image/maps/map" + std::to_string(level) + ".png";
 
     try {
         m_MapGrid.loadMapDataFromFile(levelFileName);
@@ -170,12 +170,12 @@ void Game::UpdatePlay() {
 
     const std::vector<Map::Path>& paths = m_Map.GetPaths();
     if (spawnCoords != sf::Vector2i(-1, -1) && !paths.empty()) {
-        m_enemyTemplate.SetPosition(sf::Vector2f(spawnCoords.x * 80.0f + 40.0f, spawnCoords.y * 80.0f + 40.0f));
+        m_enemyTemplate.SetPosition(sf::Vector2f(spawnCoords.x * 64.0f + 32.0f, spawnCoords.y * 64.0f + 32.0f));
         if (m_enemies.size() < iMaxEnemies) {
             static float fSpawnTimer = 0.0f;
             float fSpawnRate = m_fDifficulty;
             fSpawnTimer += m_deltaTime.asSeconds() * fSpawnRate;
-            if (fSpawnTimer > 1.0f) {
+            if (fSpawnTimer > 2.5f) {
                 Entity& newEnemy = m_enemies.emplace_back(m_enemyTemplate);
                 newEnemy.SetPathIndex(rand() % paths.size());
                 fSpawnTimer = 0.0f;
@@ -202,7 +202,7 @@ void Game::UpdatePlay() {
         float fClosestDistance = std::numeric_limits<float>::max();
 
         for (const Map::PathTile& tile : path) {
-            sf::Vector2f tilePos(tile.coords.x * 80.0f + 40.0f, tile.coords.y * 80.0f + 40.0f);
+            sf::Vector2f tilePos(tile.coords.x * 64.0f + 32.0f, tile.coords.y * 64.0f + 32.0f);
             sf::Vector2f vEnemyToTile = tilePos - rEnemy.GetPosition();
             float fDistance = MathHelpers::flength(vEnemyToTile);
 
@@ -213,10 +213,10 @@ void Game::UpdatePlay() {
         }
 
         if (!pClosestTile) continue;
-        sf::Vector2f nextTilePos(pClosestTile->nextCoords.x * 80.0f + 40.0f, pClosestTile->nextCoords.y * 80.0f + 40.0f);
+        sf::Vector2f nextTilePos(pClosestTile->nextCoords.x * 64.0f + 32.0f, pClosestTile->nextCoords.y * 64.0f + 32.0f);
 
         if (endCoords != sf::Vector2i(-1, -1) && pClosestTile->nextCoords == endCoords) {
-            if (fClosestDistance < 40.0f) {
+            if (fClosestDistance < 32.0f) {
                 m_enemies.erase(m_enemies.begin() + i);
                 m_iPlayerHealth--;
                 m_fDifficulty *= 0.9f;
@@ -224,7 +224,7 @@ void Game::UpdatePlay() {
             }
         }
 
-        float fEnemySpeed = 250.0f;
+        float fEnemySpeed = 150.0f;
         sf::Vector2f vEnemyToNextTile = nextTilePos - rEnemy.GetPosition();
         vEnemyToNextTile = MathHelpers::normalize(vEnemyToNextTile);
         rEnemy.SetVelocity(vEnemyToNextTile * fEnemySpeed);
@@ -266,10 +266,10 @@ void Game::UpdateTower() {
         }
 
         sf::Vector2f vTowerToEnemy = pClosestEnemy->GetPosition() - tower.GetPosition();
-        float fAngle = MathHelpers::Angle(vTowerToEnemy);
+        float fAngle = MathHelpers::Angle(vTowerToEnemy) + 180.0f;
         tower.GetSpriteNonConst().setRotation(fAngle);
 
-        Entity& newAxe = m_axes.emplace_back(m_axeTemplate);
+        Entity& newAxe = m_axes.emplace_back(m_bulletTemplate);
         newAxe.SetPosition(tower.GetPosition());
         vTowerToEnemy = MathHelpers::normalize(vTowerToEnemy);
         newAxe.SetVelocity(vTowerToEnemy * 500.0f);
@@ -712,8 +712,8 @@ bool Game::CreateTowerAtPosition(const sf::Vector2f& pos) {
 }
 
 bool Game::CanPlaceTowerAtPosition(const sf::Vector2f& pos) {
-    int gridX = static_cast<int>(pos.x / 80.0f);
-    int gridY = static_cast<int>(pos.y / 80.0f);
+    int gridX = static_cast<int>(pos.x / 64.0f);
+    int gridY = static_cast<int>(pos.y / 64.0f);
 
     if (gridX < 0 || gridX >= m_MapGrid.getWidth() || gridY < 0 || gridY >= m_MapGrid.getHeight()) {
         std::cout << "Position out of bounds: (" << pos.x << ", " << pos.y << ")" << std::endl;
