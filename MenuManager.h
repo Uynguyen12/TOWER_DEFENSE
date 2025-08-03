@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp> // Added for sound effects
 #include <vector>
 #include <string>
 #include "Entity.h"
 #include <functional>
-
 
 class MenuManager {
 public:
@@ -52,11 +52,12 @@ public:
     enum class ButtonIcon {
         None,
         Shield,      // 🏰 New Profile
-        Sword,       // 🛡️ Play as Guest  
+        Sword,       // 🛡️ Play as Guest
         Gear,        // ⚙️ Settings
         Scroll,      // 📜 Back/Exit
         Crown,       // 👑 Main Menu
-        Target       // 🎯 Play
+        Target,      // 🎯 Play / Continue
+        Restart      // 🕰️ Restart
     };
 
     struct Button {
@@ -69,17 +70,15 @@ public:
         ButtonIcon icon;
         sf::CircleShape decorativeGem;
         std::vector<sf::CircleShape> rivets;
-
+        sf::Sprite iconSprite; // Added for flat medieval icon
         bool isVisible;
         bool isDeleteButton;
+        float iconGlowIntensity; // For hover glow effect
 
-        Button() : state(ButtonState::Normal), isVisible(true), isDeleteButton(false) {}
         Button() : state(ButtonState::Normal), isVisible(true), isDeleteButton(false),
-            style(ButtonStyle::Shield), icon(ButtonIcon::None) {
+            style(ButtonStyle::Shield), icon(ButtonIcon::None), iconGlowIntensity(0.0f) {
         }
     };
-
-  
 
     struct Slider {
         sf::RectangleShape track;
@@ -121,8 +120,8 @@ public:
         int savedLevel = 1;
         float savedDifficulty = 1.0f;
         int savedGold = 10;
+        int currentLevel = 1;
 
-        // New fields for saving game state
         std::vector<TowerData> savedTowers;
         std::vector<std::vector<int>> savedMapLayout;
         std::vector<PathPoint> savedEnemyPath;
@@ -140,7 +139,7 @@ public:
     void Draw(sf::RenderWindow& window);
     void HandleInput(sf::Event& event, sf::RenderWindow& window);
     void ReturnToMenu();
-    void DrawPauseMenu(sf::RenderWindow& window); // Added sf::RenderWindow& parameter
+    void DrawPauseMenu(sf::RenderWindow& window);
     void TogglePauseMenu();
     void CreatePauseMenu();
     bool IsGamePaused() const;
@@ -162,13 +161,13 @@ public:
     void LoadProfilesFromFile();
     void ApplyResolution(sf::RenderWindow& window);
 
-    // Settings management - Thêm các hàm mới
+    // Settings management
     const GameSettings& GetSettings() const { return m_settings; }
     void SaveSettingsToFile();
     void LoadSettingsFromFile();
 
     // Input handling for profile creation
-    void SetWaitingForInput(bool waiting) { m_waitingForNameInput = waiting; }
+    void SetWaitingForInput(bool waiting);
     bool IsWaitingForInput() const { return m_waitingForNameInput; }
     void HandleTextInput(sf::Uint32 unicode);
     void ClearInputText();
@@ -176,10 +175,10 @@ public:
     void SetStartGameCallback(std::function<void(int)> callback);
     void SetResolutionChangeCallback(std::function<void(sf::Vector2u)> callback) { m_resolutionChangeCallback = callback; }
 
-    // Audio callbacks - Thêm callbacks cho audio
+    // Audio callbacks
     void SetMusicVolumeCallback(std::function<void(float)> callback) { m_musicVolumeCallback = callback; }
     void SetSFXVolumeCallback(std::function<void(float)> callback) { m_sfxVolumeCallback = callback; }
-    void SetBackgroundMusicVolumeCallback(std::function<void(float)> callback) { m_backgroundMusicVolumeCallback = callback; } // Added
+    void SetBackgroundMusicVolumeCallback(std::function<void(float)> callback) { m_backgroundMusicVolumeCallback = callback; }
 
 private:
     // Menu creation functions
@@ -188,7 +187,7 @@ private:
     void CreateNewProfileMenu();
     void CreateMainMenu();
     void CreatePlayMenu();
-    void CreateSettingsMenu(); // Thêm hàm tạo settings menu
+    void CreateSettingsMenu();
     void CreateSettingsContent();
     void CreateTabButton(const std::string& text, sf::Vector2f position,
         SettingsTab tab, std::function<void()> callback);
@@ -199,6 +198,10 @@ private:
     void CreateGradientBackground();
     void CreateEnhancedButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
         std::function<void(sf::RenderWindow&)> callback, bool isDeleteButton = false);
+    void CreateMedievalButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback,
+        ButtonStyle style = ButtonStyle::WoodPlank,
+        ButtonIcon icon = ButtonIcon::None, bool isDeleteButton = false);
     void CenterTextWithShadow(sf::Text& text, sf::Text& shadow, const sf::RectangleShape& shape);
     void DrawBackgroundParticles(sf::RenderWindow& window);
     void DrawInputCursor(sf::RenderWindow& window);
@@ -210,7 +213,9 @@ private:
     void CreateDeleteButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
         std::function<void(sf::RenderWindow&)> callback);
     void CreatePauseButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
-        std::function<void(sf::RenderWindow&)> callback);
+        std::function<void(sf::RenderWindow&)> callback,
+        ButtonStyle style = ButtonStyle::WoodPlank,
+        ButtonIcon icon = ButtonIcon::None, bool isDeleteButton = false);
 
     void UpdateButtons(sf::RenderWindow& window);
     void DrawButtons(sf::RenderWindow& window);
@@ -220,14 +225,14 @@ private:
     void UpdateResolutionScroll(float deltaTime);
     void UpdateVisibleResolutions();
 
-    // Slider management - Thêm các hàm quản lý slider
+    // Slider management
     void CreateSlider(const std::string& label, sf::Vector2f position, float value,
         std::function<void(float)> callback);
     void UpdateSliders(sf::RenderWindow& window);
     void DrawSliders(sf::RenderWindow& window);
     void DrawResolutionDropdown(sf::RenderWindow& window);
     void DrawScrollbar(sf::RenderWindow& window, sf::Vector2f dropdownPos,
-    float dropdownWidth, float dropdownHeight, int scrollIndex, int maxScroll);
+        float dropdownWidth, float dropdownHeight, int scrollIndex, int maxScroll);
     bool IsMouseOverSlider(const Slider& slider, sf::Vector2f mousePos);
     void UpdateSliderValue(Slider& slider, sf::Vector2f mousePos);
     void HandleResolutionDropdownClick(sf::Vector2f mousePos, sf::RenderWindow& window);
@@ -241,21 +246,53 @@ private:
 
     // Medieval button drawing functions
     void DrawMedievalButton(sf::RenderWindow& window, const Button& button);
+    void DrawMedievalScrollIndicators(sf::RenderWindow& window);
+    void DrawButtonShadow(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
+    void DrawButtonBase(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawShieldShape(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, sf::Color baseColor, ButtonState state);
+    void DrawScrollShape(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, sf::Color baseColor, ButtonState state);
+    void DrawWoodPlankShape(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, sf::Color baseColor, ButtonState state);
+    void DrawStoneShape(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, sf::Color baseColor, ButtonState state);
+    void DrawDecorativeFrame(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawCornerOrnaments(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, sf::Color color);
+    void DrawButtonRivets(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawTextureOverlay(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawButtonText(sf::RenderWindow& window, const Button& button);
+    void DrawDecorativeGem(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+
+    // Button icons
+    void DrawButtonIcon(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawShieldIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+    void DrawSwordIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+    void DrawGearIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+    void DrawScrollIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+    void DrawCrownIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+    void DrawTargetIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+    void DrawIconGlow(sf::RenderWindow& window, sf::Vector2f iconPos, float iconSize, sf::Color glowColor);
+    void DrawRestartIcon(sf::RenderWindow& window, sf::Vector2f pos, float size);
+
+    // Medieval effects
+    void DrawMagicalEffects(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+    void DrawSparkleParticles(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, sf::Color color, float time);
     void DrawMedievalCorners(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, ButtonState state);
     void DrawBeveledEdge(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size, ButtonState state);
     void DrawMetalStuds(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
     void DrawMagicalGlow(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
     void DrawSparkleEffect(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
-    void DrawMedievalScrollIndicators(sf::RenderWindow& window);
-    void DrawButtonShadow(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size);
-    void DrawButtonBase(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawDecorativeFrame(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawTextureOverlay(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawButtonRivets(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawButtonIcon(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawMagicalEffects(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawButtonText(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
-    void DrawDecorativeGem(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size);
+
+    // Pause menu effects
+    void DrawMysticalBackground(sf::RenderWindow& window);
+    void DrawEnhancedMenuShadow(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawScrollParchmentBackground(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawGothicBorderWithRunes(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawRunePatterns(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize, float time);
+    void DrawAnimatedCornerDecorations(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawEnhancedCoatOfArms(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize, float decorSize, float time);
+    void DrawMagicalTitle(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawEnhancedDecorativeBorder(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawEnhancedMagicalParticles(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawFloatingRunes(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize);
+    void DrawEnhancedMedievalButton(sf::RenderWindow& window, const Button& button);
 
 private:
     MenuState m_currentState;
@@ -265,22 +302,45 @@ private:
     sf::Font m_font;
     sf::Texture m_backgroundTexture;
     sf::Sprite m_backgroundSprite;
+    sf::Sprite m_castleBackgroundSprite;
+    sf::Texture m_parchmentTexture; // Added for scroll background
+    sf::Texture m_castleBackgroundTexture; // Added for castle background
+    sf::Texture m_gothicPatternTexture; // Added for gothic border patterns
+    sf::Texture m_dragonHeadTexture;
+    sf::Texture m_warriorTexture;
+    sf::Texture m_shieldSwordTexture;
+    sf::Texture m_iconShieldTexture; // Added for flat medieval icons
+    sf::Texture m_iconSwordTexture;
+    sf::Texture m_iconGearTexture;
+    sf::Texture m_iconScrollTexture;
+    sf::Texture m_iconCrownTexture;
+    sf::Texture m_iconTargetTexture;
+    sf::Texture m_iconRestartTexture;
+   
 
     // UI Elements
     std::vector<Button> m_buttons;
-    std::vector<Button> m_pauseButtons; // Added pause buttons vector
-    std::vector<Slider> m_sliders; // Thêm vector sliders
+    std::vector<Button> m_pauseButtons;
+    std::vector<Slider> m_sliders;
     sf::Text m_titleText;
     sf::Text m_warningText;
     sf::Text m_inputPromptText;
     sf::Text m_inputText;
     sf::RectangleShape m_inputBox;
-    sf::RectangleShape m_pauseBackground; // Added missing pause background
+    sf::RectangleShape m_pauseBackground;
     sf::Vector2f ScalePosition(sf::Vector2f originalPos, sf::Vector2f oldSize, sf::Vector2f newSize);
-    //Background
     sf::Text m_titleShadow;
     sf::RectangleShape m_inputBoxGlow;
     sf::RectangleShape m_backgroundOverlay;
+
+    // Animation elements
+    sf::Clock m_pauseGlowClock;
+    std::vector<sf::CircleShape> m_magicalParticles;
+    std::vector<sf::CircleShape> m_smokeParticles; // Added for smoke effect
+    std::vector<sf::Vector2f> m_smokeVelocities;
+    sf::Clock m_smokeClock;
+    float m_dragonAnimationPhase; // For dragon animation
+    float m_knightSwordAnimationPhase; // For knight sword animation
 
     // Profile management
     std::vector<PlayerProfile> m_profiles;
@@ -289,15 +349,23 @@ private:
     bool m_waitingForNameInput;
     bool m_showWarning;
     float m_warningTimer;
-    bool m_gamePaused; // Added missing game paused state
-
+    bool m_gamePaused;
+    int m_currentLevel;
+    bool m_ambientSoundsPlaying;
 
     float m_resolutionScrollOffset;
     float m_maxResolutionScroll;
-    
 
-   
-    // Settings - Thêm settings
+    // Decorative corner elements
+    std::vector<sf::Sprite> m_dragonSprites;
+    std::vector<sf::Sprite> m_warriorSprites;
+    std::vector<sf::Sprite> m_shieldSwordSprites;
+
+    // Gothic border decorations
+    std::vector<sf::RectangleShape> m_gothicBorders;
+    std::vector<sf::CircleShape> m_cornerRivets;
+
+    // Settings
     GameSettings m_settings;
     SettingsTab m_currentSettingsTab;
     std::vector<TabButton> m_tabButtons;
@@ -308,7 +376,7 @@ private:
     // Callback functions
     std::function<void(sf::RenderWindow&)> m_exitCallback;
     std::function<void(int)> m_startGameCallback;
-    std::function<void(sf::Vector2u)> m_resolutionChangeCallback; 
+    std::function<void(sf::Vector2u)> m_resolutionChangeCallback;
     std::function<void(float)> m_musicVolumeCallback;
     std::function<void(float)> m_backgroundMusicVolumeCallback;
     std::function<void(float)> m_sfxVolumeCallback;
@@ -323,7 +391,7 @@ private:
     static const sf::Color TEXT_COLOR;
     static const sf::Color DELETE_BUTTON_COLOR;
     static const sf::Color DELETE_BUTTON_HOVER_COLOR;
-    static const sf::Color SLIDER_TRACK_COLOR; 
+    static const sf::Color SLIDER_TRACK_COLOR;
     static const sf::Color SLIDER_HANDLE_COLOR;
     static const sf::Color SLIDER_HANDLE_HOVER_COLOR;
     static const sf::Color BACKGROUND_OVERLAY_COLOR;

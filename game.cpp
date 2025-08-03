@@ -668,8 +668,8 @@ void Game::StartGame(int level) {
     m_eGameMode = Play;
     m_GameModeText.setString("Play Mode");
 
-    SoundManager::getInstance().StopBackgroundMusic();
-    SoundManager::getInstance().PlayBackgroundMusic();
+    SoundManager::getInstance().PauseBackgroundMusic();
+    SoundManager::getInstance().ResumeBackgroundMusic();
 
     m_MenuManager.SetMenuState(MenuManager::MenuState::GamePlay);
     UpdatePlayerText();
@@ -702,8 +702,8 @@ void Game::ReturnToMenu() {
     m_MenuManager.SetMenuState(MenuManager::MenuState::MainMenu);
     m_GameModeText.setString("Menu Mode");
 
-    SoundManager::getInstance().StopBackgroundMusic();
-    SoundManager::getInstance().PlayBackgroundMusic();
+    SoundManager::getInstance().PauseBackgroundMusic();
+    SoundManager::getInstance().ResumeBackgroundMusic();
 }
 
 void Game::ExitGame() {

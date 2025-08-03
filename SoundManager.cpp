@@ -15,33 +15,38 @@ SoundManager::~SoundManager() {
 
 void SoundManager::Initialize() {
     // Load background music
-        if (!m_BackgroundMusic.openFromFile("sound/background.wav")) {
-            std::cout << "Warning: Could not load background music from 'sound/background.wav'" << std::endl;
-        }
+    if (!m_BackgroundMusic.openFromFile("sound/background.wav")) {
+        std::cout << "Warning: Could not load background music from 'sound/background.wav'" << std::endl;
+    }
 
     // Configure background music
     m_BackgroundMusic.setLoop(true);
     m_BackgroundMusic.setVolume(m_fMusicVolume);
 
     // Load sound effect buffers
-    if (!m_ThrowingSoundBuffer.loadFromFile("sound/axe_throw.wav"))
-    {
-        std::cout << "Warning: Could not load hit sound from 'sound/axe_throw.wav'" << std::endl;
+    if (!m_ThrowingSoundBuffer.loadFromFile("sound/axe_throw.wav")) {
+        std::cout << "Warning: Could not load throwing sound from 'sound/axe_throw.wav'" << std::endl;
     }
     if (!m_HitSoundBuffer.loadFromFile("sound/axe_hit.wav")) {
         std::cout << "Warning: Could not load hit sound from 'sound/axe_hit.wav'" << std::endl;
     }
-
     if (!m_EnemyDeathSoundBuffer.loadFromFile("sound/enemy_death.wav")) {
         std::cout << "Warning: Could not load enemy death sound from 'sound/enemy_death.wav'" << std::endl;
     }
-
     if (!m_TowerPlaceSoundBuffer.loadFromFile("sound/tower_place.wav")) {
-        std::cout << "Warning: Could not load tower place sound from 'sound/tower_built.wav'" << std::endl;
+        std::cout << "Warning: Could not load tower place sound from 'sound/tower_place.wav'" << std::endl;
     }
-
     if (!m_GameOverSoundBuffer.loadFromFile("sound/gameover.wav")) {
         std::cout << "Warning: Could not load game over sound from 'sound/gameover.wav'" << std::endl;
+    }
+    if (!m_ambientWindBuffer.loadFromFile("sound/ambient_wind.wav")) {
+        std::cout << "Warning: Could not load ambient wind sound from 'sound/ambient_wind.wav'" << std::endl;
+    }
+    if (!m_ambientFireBuffer.loadFromFile("sound/ambient_fire.wav")) {
+        std::cout << "Warning: Could not load ambient fire sound from 'sound/ambient_fire.wav'" << std::endl;
+    }
+    if (!m_dragonRoarBuffer.loadFromFile("sound/dragon_roar.wav")) {
+        std::cout << "Warning: Could not load dragon roar sound from 'sound/dragon_roar.wav'" << std::endl;
     }
 
     // Create sound pools and configure them
@@ -53,12 +58,24 @@ void SoundManager::Initialize() {
 
     m_GameOverSound.setBuffer(m_GameOverSoundBuffer);
     m_GameOverSound.setVolume(m_fSoundVolume);
+
+    m_ambientWindSound.setBuffer(m_ambientWindBuffer);
+    m_ambientWindSound.setVolume(m_fSoundVolume);
+    m_ambientWindSound.setLoop(true); // Ambient sounds typically loop
+
+    m_ambientFireSound.setBuffer(m_ambientFireBuffer);
+    m_ambientFireSound.setVolume(m_fSoundVolume);
+    m_ambientFireSound.setLoop(true); // Ambient sounds typically loop
+
+    m_dragonRoarSound.setBuffer(m_dragonRoarBuffer);
+    m_dragonRoarSound.setVolume(m_fSoundVolume);
 }
 
 void SoundManager::CreateSoundPool() {
     const int throwingSoundPoolSize = 8; // Allow 8 simultaneous throwing sounds
     const int hitSoundPoolSize = 5;  // Allow 5 simultaneous hit sounds
     const int deathSoundPoolSize = 3; // Allow 3 simultaneous death sounds
+    const int ambientSoundPoolSize = 3; // Allow 3 simultaneous ambient sounds
 
     // Create throwing sound pool
     m_ThrowingSounds.clear();
@@ -121,15 +138,12 @@ void SoundManager::PauseBackgroundMusic() {
 }
 
 void SoundManager::ResumeBackgroundMusic() {
-    // Chỉ resume nếu nhạc đang ở trạng thái paused
     if (m_BackgroundMusic.getStatus() == sf::Music::Paused) {
         m_BackgroundMusic.play();
     }
-    // Nếu nhạc chưa được load hoặc đã stop, thì bắt đầu phát từ đầu
     else if (m_BackgroundMusic.getStatus() == sf::Music::Stopped) {
         m_BackgroundMusic.play();
     }
-    // Nếu đang phát rồi thì không làm gì cả
 }
 
 void SoundManager::PlayThrowingSound() {
@@ -163,6 +177,58 @@ void SoundManager::PlayGameOverSound() {
     m_GameOverSound.play();
 }
 
+void SoundManager::PlayWindSound() {
+    if (m_ambientWindSound.getStatus() != sf::Sound::Playing) {
+        m_ambientWindSound.play();
+    }
+}
+
+void SoundManager::PlayFireSound() {
+    if (m_ambientFireSound.getStatus() != sf::Sound::Playing) {
+        m_ambientFireSound.play();
+    }
+}
+
+void SoundManager::PlayDragonRoarSound() {
+    if (m_dragonRoarSound.getStatus() != sf::Sound::Playing) {
+        m_dragonRoarSound.play();
+    }
+}
+
+void SoundManager::StartAmbientSoundCycle() {
+    m_nextAmbientInterval = 5.f + static_cast<float>(rand() % 6); // 5–10s ngẫu nhiên
+    m_ambientTimer.restart();
+    PlayRandomAmbientSound(); // Phát lần đầu
+}
+
+void SoundManager::PlayRandomAmbientSound() {
+    StopAmbientSounds();
+    int random = rand() % 3;
+    switch (random) {
+    case 0:
+        m_ambientFireSound.play();
+        break;
+    case 1:
+        m_ambientWindSound.play();
+        break;
+    case 2:
+        m_dragonRoarSound.play();
+        break;
+    }
+}
+void SoundManager::UpdateAmbientSound() {
+    if (m_ambientTimer.getElapsedTime().asSeconds() >= m_nextAmbientInterval) {
+        PlayRandomAmbientSound(); // Dừng âm cũ, phát âm mới
+        m_nextAmbientInterval = 5.f + static_cast<float>(rand() % 6); // Reset khoảng thời gian
+        m_ambientTimer.restart();
+    }
+}
+
+void SoundManager::StopAmbientSounds() {
+    m_ambientFireSound.stop();
+    m_ambientWindSound.stop();
+    m_dragonRoarSound.stop();
+}
 void SoundManager::SetMusicVolume(float volume) {
     m_fMusicVolume = std::max(0.0f, std::min(100.0f, volume));
     m_BackgroundMusic.setVolume(m_fMusicVolume);
@@ -186,6 +252,9 @@ void SoundManager::SetSoundVolume(float volume) {
 
     m_TowerPlaceSound.setVolume(m_fSoundVolume);
     m_GameOverSound.setVolume(m_fSoundVolume);
+    m_ambientWindSound.setVolume(m_fSoundVolume);
+    m_ambientFireSound.setVolume(m_fSoundVolume);
+    m_dragonRoarSound.setVolume(m_fSoundVolume);
 }
 
 void SoundManager::Cleanup() {
@@ -206,4 +275,7 @@ void SoundManager::Cleanup() {
 
     m_TowerPlaceSound.stop();
     m_GameOverSound.stop();
+    m_ambientWindSound.stop();
+    m_ambientFireSound.stop();
+    m_dragonRoarSound.stop();
 }

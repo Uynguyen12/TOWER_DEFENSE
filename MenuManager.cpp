@@ -59,12 +59,13 @@ MenuManager::MenuManager()
     , m_showWarning(false)
     , m_warningTimer(0.0f)
     , m_gamePaused(false)
+    , m_currentLevel(1)
     , m_selectedResolutionIndex(0)
     , m_resolutionDropdownOpen(false)
     , m_resolutionScrollOffset(0.0f)
     , m_maxResolutionScroll(0.0f)
 {
- 
+
     if (m_availableResolutions.empty()) {
         m_availableResolutions = {
             {1920, 1080},
@@ -96,6 +97,9 @@ void MenuManager::Initialize(sf::RenderWindow& window) {
     LoadProfilesFromFile();
     LoadSettingsFromFile();
     SetMenuState(MenuState::ProfileMenu);
+
+    m_ambientSoundsPlaying = false;
+    m_gamePaused = false;
 
     // Ensure selected resolution is valid
     bool validResolution = false;
@@ -132,6 +136,7 @@ void MenuManager::CreateGradientBackground() {
     m_backgroundSprite.setTexture(m_backgroundTexture);
 }
 
+
 void MenuManager::LoadResources() {
     if (!m_font.loadFromFile("Fonts/Luminari-Regular.ttf")) {
         std::cerr << "Warning: Could not load font. Using default font." << std::endl;
@@ -148,7 +153,22 @@ void MenuManager::LoadResources() {
             m_windowSize.y / static_cast<float>(textureSize.y)
         );
         m_backgroundSprite.setScale(scale);
+        m_backgroundSprite.setColor(sf::Color(255, 255, 255, 180));
     }
+
+    //Pause menu background
+    if (!m_dragonHeadTexture.loadFromFile("image/dragon_head.png")) {
+        std::cerr << "Warning: Could not load dragon head texture" << std::endl;
+    }
+
+    if (!m_warriorTexture.loadFromFile("image/warrior.png")) {
+        std::cerr << "Warning: Could not load warrior leaves texture" << std::endl;
+    }
+
+    if (!m_shieldSwordTexture.loadFromFile("image/shield_sword.png")) {
+        std::cerr << "Warning: Could not load shield sword texture" << std::endl;
+    }
+
 
     m_titleText.setFont(m_font);
     m_titleText.setCharacterSize(56);
@@ -184,7 +204,7 @@ void MenuManager::LoadResources() {
     m_inputBoxGlow.setFillColor(sf::Color(120, 120, 255, 30));
     m_inputBoxGlow.setOutlineThickness(0);
 
-    m_pauseBackground.setSize(sf::Vector2f(500, 400));
+    m_pauseBackground.setSize(sf::Vector2f(600, 500));
     m_pauseBackground.setFillColor(sf::Color(15, 15, 25, 200));
     m_pauseBackground.setOutlineThickness(2);
     m_pauseBackground.setOutlineColor(sf::Color(120, 120, 255, 180));
@@ -196,6 +216,9 @@ void MenuManager::LoadResources() {
 void MenuManager::Update(sf::RenderWindow& window, float deltaTime) {
     UpdateButtons(window);
     UpdateSliders(window);
+    if (m_ambientSoundsPlaying) {
+        SoundManager::getInstance().UpdateAmbientSound();
+    }
 
     if (m_currentState == MenuState::Settings) {
         UpdateTabButtons(window);
@@ -211,6 +234,7 @@ void MenuManager::Update(sf::RenderWindow& window, float deltaTime) {
             m_showWarning = false;
         }
     }
+
 }
 
 void MenuManager::CreateEnhancedButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
@@ -546,6 +570,9 @@ void MenuManager::DrawButtonIcon(sf::RenderWindow& window, const Button& button,
     case ButtonIcon::Target:
         DrawTargetIcon(window, iconPos, iconSize);
         break;
+    case ButtonIcon::Restart:
+        DrawRestartIcon(window, iconPos, iconSize);
+        break;
     }
 }
 
@@ -675,32 +702,50 @@ void MenuManager::DrawTargetIcon(sf::RenderWindow& window, sf::Vector2f pos, flo
     window.draw(vLine);
 }
 
-void MenuManager::DrawMagicalEffects(sf::RenderWindow& window, const Button& button,
-    sf::Vector2f pos, sf::Vector2f size) {
-    static sf::Clock magicClock;
-    float time = magicClock.getElapsedTime().asSeconds();
-
-    // Choose effect color based on button type
-    sf::Color effectColor = button.isDeleteButton ? MEDIEVAL_FIRE_GLOW : MEDIEVAL_MAGIC_GLOW;
-
-    // Pulsing glow effect
-    float glowIntensity = (sin(time * 3.0f) + 1.0f) * 0.5f;
-    sf::Uint8 alpha = (sf::Uint8)(glowIntensity * 120 + 60);
-
-    // Multiple glow layers for depth
-    for (int i = 3; i >= 1; i--) {
-        sf::RectangleShape glow;
-        glow.setSize(sf::Vector2f(size.x + i * 8, size.y + i * 8));
-        glow.setPosition(pos.x - i * 4, pos.y - i * 4);
-        glow.setFillColor(sf::Color::Transparent);
-        glow.setOutlineThickness(2);
-        glow.setOutlineColor(sf::Color(effectColor.r, effectColor.g, effectColor.b, alpha / i));
-        window.draw(glow);
+void MenuManager::DrawMagicalEffects(sf::RenderWindow& window, const Button& button, sf::Vector2f pos, sf::Vector2f size) {
+    if (button.state != ButtonState::Hovered && button.state != ButtonState::Pressed) {
+        return; // Only draw effects for hovered or pressed states
     }
 
-    // Sparkle particles around button
-    DrawSparkleParticles(window, pos, size, effectColor, time);
+    // Static clock for time-based animations
+    static sf::Clock effectClock;
+    float time = effectClock.getElapsedTime().asSeconds();
+
+    // Select glow color based on button style or icon
+    sf::Color glowColor = (button.style == ButtonStyle::Scroll || button.icon == ButtonIcon::Scroll)
+        ? MEDIEVAL_MAGIC_GLOW  // Blue glow for scroll-style buttons or scroll icon
+        : MEDIEVAL_FIRE_GLOW;  // Fire glow for others
+
+    // Pulsing glow effect around the button
+    float pulse = 1.0f + 0.1f * std::sin(time * 3.0f); // Faster pulse for dynamic effect
+    float glowRadius = std::max(size.x, size.y) * 0.1f * pulse; // Glow size scales with button
+
+    sf::CircleShape glowShape(glowRadius);
+    glowShape.setPosition(pos.x + size.x / 2 - glowRadius, pos.y + size.y / 2 - glowRadius);
+    glowShape.setFillColor(sf::Color(glowColor.r, glowColor.g, glowColor.b, 100 * pulse)); // Fade with pulse
+    window.draw(glowShape);
+
+    // Subtle gradient overlay for button surface
+    sf::RectangleShape gradientOverlay(size);
+    gradientOverlay.setPosition(pos);
+    sf::Color gradientColor = glowColor;
+    gradientColor.a = 50; // Semi-transparent
+    gradientOverlay.setFillColor(gradientColor);
+    window.draw(gradientOverlay);
+
+    // Sparkle particles for magical effect
+    if (button.state == ButtonState::Hovered) {
+        for (int i = 0; i < 3; ++i) {
+            sf::CircleShape sparkle(3.0f);
+            float offsetX = static_cast<float>(rand() % static_cast<int>(size.x));
+            float offsetY = static_cast<float>(rand() % static_cast<int>(size.y));
+            sparkle.setPosition(pos.x + offsetX, pos.y + offsetY);
+            sparkle.setFillColor(sf::Color(glowColor.r, glowColor.g, glowColor.b, 150));
+            window.draw(sparkle);
+        }
+    }
 }
+
 
 void MenuManager::DrawSparkleParticles(sf::RenderWindow& window, sf::Vector2f pos, sf::Vector2f size,
     sf::Color color, float time) {
@@ -726,6 +771,312 @@ void MenuManager::DrawSparkleParticles(sf::RenderWindow& window, sf::Vector2f po
         sparkle.setOutlineThickness(1);
         sparkle.setOutlineColor(sf::Color(color.r, color.g, color.b, (sf::Uint8)(alpha * 0.8f)));
         window.draw(sparkle);
+    }
+}
+
+void MenuManager::DrawTextureOverlay(sf::RenderWindow& window, const Button& button,
+    sf::Vector2f pos, sf::Vector2f size) {
+    // Create a subtle texture overlay for buttons
+    static sf::RenderTexture textureCache;
+    static bool textureCreated = false;
+
+    if (!textureCreated) {
+        textureCache.create(static_cast<unsigned int>(size.x), static_cast<unsigned int>(size.y));
+        textureCache.clear(sf::Color::Transparent);
+
+        // Create a subtle noise pattern
+        for (int i = 0; i < 50; i++) {
+            sf::CircleShape dot(1);
+            dot.setPosition(
+                static_cast<float>(rand() % static_cast<int>(size.x)),
+                static_cast<float>(rand() % static_cast<int>(size.y))
+            );
+            dot.setFillColor(sf::Color(255, 255, 255, 30));
+            textureCache.draw(dot);
+        }
+        textureCache.display();
+        textureCreated = true;
+    }
+
+    sf::Sprite textureSprite(textureCache.getTexture());
+    textureSprite.setPosition(pos);
+    window.draw(textureSprite);
+}
+
+void MenuManager::DrawButtonText(sf::RenderWindow& window, const Button& button) {
+    // Draw text shadow first
+    window.draw(button.textShadow);
+
+    // Then draw the main text
+    window.draw(button.text);
+
+    // Add glow effect for hovered buttons
+    if (button.state == ButtonState::Hovered) {
+        sf::Text glowText = button.text;
+        glowText.setFillColor(sf::Color(255, 255, 255, 100));
+        glowText.setPosition(button.text.getPosition().x + 1, button.text.getPosition().y + 1);
+        window.draw(glowText);
+    }
+}
+
+void MenuManager::DrawDecorativeGem(sf::RenderWindow& window, const Button& button,
+    sf::Vector2f pos, sf::Vector2f size) {
+    if (button.state != ButtonState::Hovered) return;
+
+    // Draw a small gem in the center of hovered buttons
+    sf::CircleShape gem(4, 6); // 6-sided gem
+    gem.setPosition(pos.x + size.x - 20, pos.y + 10);
+    gem.setFillColor(button.isDeleteButton ? sf::Color(255, 100, 100, 200) : sf::Color(100, 200, 255, 200));
+    gem.setOutlineThickness(1);
+    gem.setOutlineColor(MEDIEVAL_GOLD);
+    window.draw(gem);
+
+    // Add sparkle effect
+    static sf::Clock sparkleTime;
+    float time = sparkleTime.getElapsedTime().asSeconds();
+    float alpha = (sin(time * 4.0f) + 1.0f) * 0.5f * 255.0f;
+
+    sf::CircleShape sparkle(2, 4);
+    sparkle.setPosition(gem.getPosition().x + 2, gem.getPosition().y + 2);
+    sparkle.setFillColor(sf::Color(255, 255, 255, static_cast<sf::Uint8>(alpha)));
+    window.draw(sparkle);
+}
+
+void MenuManager::CreateMedievalButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+    std::function<void(sf::RenderWindow&)> callback,
+    ButtonStyle style, ButtonIcon icon, bool isDeleteButton) {
+    Button button;
+    button.shape.setPosition(position);
+    button.shape.setSize(size);
+    button.style = style;
+    button.icon = icon;
+    button.isDeleteButton = isDeleteButton;
+
+    // Set base color based on button type
+    if (isDeleteButton) {
+        button.shape.setFillColor(DELETE_BUTTON_COLOR);
+    }
+    else {
+        button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+    }
+
+    button.shape.setOutlineThickness(4);
+    button.shape.setOutlineColor(MEDIEVAL_GOLD);
+
+    // Setup text
+    button.text.setFont(m_font);
+    button.text.setString(text);
+
+    // Adjust font size based on text length
+    int fontSize = 26;
+    if (text.length() > 20) fontSize = 20;
+    else if (text.length() > 15) fontSize = 22;
+
+    button.text.setCharacterSize(fontSize);
+    button.text.setFillColor(TEXT_COLOR);
+    button.text.setStyle(sf::Text::Bold);
+
+    // Setup text shadow
+    button.textShadow.setFont(m_font);
+    button.textShadow.setString(text);
+    button.textShadow.setCharacterSize(fontSize);
+    button.textShadow.setFillColor(MEDIEVAL_SHADOW);
+    button.textShadow.setStyle(sf::Text::Bold);
+
+    // Center text with shadow
+    CenterTextWithShadow(button.text, button.textShadow, button.shape);
+
+    button.callback = callback;
+    button.state = ButtonState::Normal;
+    button.isVisible = true;
+
+    m_buttons.push_back(button);
+}
+
+void MenuManager::DrawIconGlow(sf::RenderWindow& window, sf::Vector2f iconPos, float iconSize, sf::Color glowColor) {
+    static sf::Clock iconGlowClock;
+    float time = iconGlowClock.getElapsedTime().asSeconds();
+    float pulse = 1.0f + 0.1f * std::sin(time * 2.0f); // Slower pulse for icons
+
+    sf::CircleShape iconGlow(iconSize * 0.6f * pulse);
+    iconGlow.setPosition(iconPos.x - iconSize * 0.1f, iconPos.y - iconSize * 0.1f);
+    iconGlow.setFillColor(sf::Color(glowColor.r, glowColor.g, glowColor.b, 50));
+    window.draw(iconGlow);
+}
+
+void MenuManager::DrawRestartIcon(sf::RenderWindow& window, sf::Vector2f pos, float size) {
+    static sf::Clock iconClock;
+    float time = iconClock.getElapsedTime().asSeconds();
+    float pulse = 1.0f + 0.05f * std::sin(time * 2.0f); // Nhẹ nhàng hơn
+
+    // Draw icon glow for hovered state
+    if (m_buttons.size() > 0 && m_buttons[0].state == ButtonState::Hovered) {
+        DrawIconGlow(window, pos, size, MEDIEVAL_FIRE_GLOW);
+    }
+
+    // === VẼ KHUNG ĐỒNG HỒ CÁT ===
+
+    // Khung trên (nửa trên của đồng hồ cát)
+    sf::ConvexShape topFrame(4);
+    topFrame.setPoint(0, sf::Vector2f(pos.x + size * 0.2f, pos.y)); // Top left
+    topFrame.setPoint(1, sf::Vector2f(pos.x + size * 0.8f, pos.y)); // Top right
+    topFrame.setPoint(2, sf::Vector2f(pos.x + size * 0.6f, pos.y + size * 0.4f)); // Bottom right (narrowing)
+    topFrame.setPoint(3, sf::Vector2f(pos.x + size * 0.4f, pos.y + size * 0.4f)); // Bottom left (narrowing)
+
+    topFrame.setFillColor(sf::Color::Transparent);
+    topFrame.setOutlineThickness(2.0f);
+    topFrame.setOutlineColor(MEDIEVAL_GOLD);
+    window.draw(topFrame);
+
+    // Khung dưới (nửa dưới của đồng hồ cát)
+    sf::ConvexShape bottomFrame(4);
+    bottomFrame.setPoint(0, sf::Vector2f(pos.x + size * 0.4f, pos.y + size * 0.6f)); // Top left (narrow)
+    bottomFrame.setPoint(1, sf::Vector2f(pos.x + size * 0.6f, pos.y + size * 0.6f)); // Top right (narrow)
+    bottomFrame.setPoint(2, sf::Vector2f(pos.x + size * 0.8f, pos.y + size)); // Bottom right
+    bottomFrame.setPoint(3, sf::Vector2f(pos.x + size * 0.2f, pos.y + size)); // Bottom left
+
+    bottomFrame.setFillColor(sf::Color::Transparent);
+    bottomFrame.setOutlineThickness(2.0f);
+    bottomFrame.setOutlineColor(MEDIEVAL_GOLD);
+    window.draw(bottomFrame);
+
+    // === VẼ CÁT TRONG ĐỒNG HỒ ===
+
+    // Tính toán lượng cát dựa trên thời gian (hiệu ứng đảo ngược)
+    float sandProgress = (std::sin(time * 0.8f) + 1.0f) * 0.5f; // 0 to 1, oscillating
+
+    // Cát ở nửa trên (giảm dần)
+    if (sandProgress < 1.0f) {
+        float topSandHeight = (1.0f - sandProgress) * size * 0.35f;
+        sf::ConvexShape topSand(4);
+
+        float sandTop = pos.y + size * 0.05f;
+        float sandBottom = sandTop + topSandHeight;
+        float leftWidth = size * 0.25f + (size * 0.1f) * (topSandHeight / (size * 0.35f));
+        float rightWidth = size * 0.25f + (size * 0.1f) * (topSandHeight / (size * 0.35f));
+
+        topSand.setPoint(0, sf::Vector2f(pos.x + size * 0.5f - leftWidth, sandTop));
+        topSand.setPoint(1, sf::Vector2f(pos.x + size * 0.5f + rightWidth, sandTop));
+        topSand.setPoint(2, sf::Vector2f(pos.x + size * 0.55f, sandBottom));
+        topSand.setPoint(3, sf::Vector2f(pos.x + size * 0.45f, sandBottom));
+
+        topSand.setFillColor(sf::Color(255, 215, 0, 200)); // Vàng cát
+        window.draw(topSand);
+    }
+
+    // Cát ở nửa dưới (tăng dần)
+    if (sandProgress > 0.0f) {
+        float bottomSandHeight = sandProgress * size * 0.35f;
+        sf::ConvexShape bottomSand(4);
+
+        float sandBottom = pos.y + size * 0.95f;
+        float sandTop = sandBottom - bottomSandHeight;
+        float leftWidth = size * 0.25f + (size * 0.1f) * (bottomSandHeight / (size * 0.35f));
+        float rightWidth = size * 0.25f + (size * 0.1f) * (bottomSandHeight / (size * 0.35f));
+
+        bottomSand.setPoint(0, sf::Vector2f(pos.x + size * 0.45f, sandTop));
+        bottomSand.setPoint(1, sf::Vector2f(pos.x + size * 0.55f, sandTop));
+        bottomSand.setPoint(2, sf::Vector2f(pos.x + size * 0.5f + rightWidth, sandBottom));
+        bottomSand.setPoint(3, sf::Vector2f(pos.x + size * 0.5f - leftWidth, sandBottom));
+
+        bottomSand.setFillColor(sf::Color(255, 215, 0, 220)); // Vàng cát đậm hơn
+        window.draw(bottomSand);
+    }
+
+    // === VẼ DÒNG CÁT CHẢY ===
+
+    // Vẽ dòng cát chảy từ trên xuống dưới
+    if (sandProgress > 0.1f && sandProgress < 0.9f) {
+        // Dòng cát chính
+        sf::RectangleShape sandStream;
+        sandStream.setSize(sf::Vector2f(2, size * 0.2f));
+        sandStream.setPosition(pos.x + size * 0.5f - 1, pos.y + size * 0.4f);
+        sandStream.setFillColor(sf::Color(255, 200, 0, 180));
+        window.draw(sandStream);
+
+        // Hạt cát rơi
+        for (int i = 0; i < 3; i++) {
+            sf::CircleShape sandParticle(1);
+            float particleOffset = std::sin(time * 5 + i * 1.2f) * 2;
+            sandParticle.setPosition(
+                pos.x + size * 0.5f + particleOffset,
+                pos.y + size * 0.45f + (i * 5) + std::fmod(time * 30, 10)
+            );
+            sandParticle.setFillColor(sf::Color(255, 180, 0, 150));
+            window.draw(sandParticle);
+        }
+    }
+
+    // === VẼ KHUNG TRANG TRÍ ===
+
+    // Khung trên và dưới của đồng hồ cát
+    sf::RectangleShape topCap;
+    topCap.setSize(sf::Vector2f(size * 0.7f, size * 0.08f));
+    topCap.setPosition(pos.x + size * 0.15f, pos.y - size * 0.02f);
+    topCap.setFillColor(MEDIEVAL_GOLD);
+    topCap.setOutlineThickness(1);
+    topCap.setOutlineColor(sf::Color(150, 100, 0, 255));
+    window.draw(topCap);
+
+    sf::RectangleShape bottomCap;
+    bottomCap.setSize(sf::Vector2f(size * 0.7f, size * 0.08f));
+    bottomCap.setPosition(pos.x + size * 0.15f, pos.y + size * 0.94f);
+    bottomCap.setFillColor(MEDIEVAL_GOLD);
+    bottomCap.setOutlineThickness(1);
+    bottomCap.setOutlineColor(sf::Color(150, 100, 0, 255));
+    window.draw(bottomCap);
+
+    // === HIỆU ỨNG MAGICAL ===
+
+    // Vòng tròn magical xung quanh đồng hồ cát khi hover
+    if (m_buttons.size() > 0 && m_buttons[0].state == ButtonState::Hovered) {
+        sf::CircleShape magicCircle(size * 0.6f, 12);
+        magicCircle.setPosition(pos.x - size * 0.1f, pos.y - size * 0.1f);
+        magicCircle.setFillColor(sf::Color::Transparent);
+        magicCircle.setOutlineThickness(2);
+
+        // Đổi màu theo thời gian
+        float colorShift = std::sin(time * 3) * 50;
+        magicCircle.setOutlineColor(sf::Color(
+            std::max(100, std::min(255, static_cast<int>(MEDIEVAL_MAGIC_GLOW.r + colorShift))),
+            std::max(100, std::min(255, static_cast<int>(MEDIEVAL_MAGIC_GLOW.g + colorShift))),
+            255,
+            150
+        ));
+        window.draw(magicCircle);
+
+        // Sparkle particles xung quanh
+        for (int i = 0; i < 4; i++) {
+            float angle = time * 2 + i * 1.57f; // 90 độ apart
+            sf::CircleShape sparkle(2, 4);
+            sparkle.setPosition(
+                pos.x + size * 0.5f + std::cos(angle) * size * 0.4f,
+                pos.y + size * 0.5f + std::sin(angle) * size * 0.4f
+            );
+            sparkle.setFillColor(sf::Color(255, 255, 255, 180));
+            window.draw(sparkle);
+        }
+    }
+
+    // === HIỆU ỨNG XOAY NGƯỢC ===
+
+    // Mũi tên xoay ngược để chỉ restart
+    if (std::fmod(time, 4.0f) > 3.5f) { // Hiệu ứng xuất hiện định kỳ
+        sf::ConvexShape rotationArrow(3);
+        rotationArrow.setPoint(0, sf::Vector2f(pos.x + size * 0.1f, pos.y + size * 0.3f));
+        rotationArrow.setPoint(1, sf::Vector2f(pos.x + size * 0.05f, pos.y + size * 0.2f));
+        rotationArrow.setPoint(2, sf::Vector2f(pos.x + size * 0.15f, pos.y + size * 0.15f));
+
+        rotationArrow.setFillColor(sf::Color(255, 100, 100, 200));
+        window.draw(rotationArrow);
+
+        // Đường cong chỉ hướng xoay
+        sf::CircleShape rotationHint(size * 0.3f, 16);
+        rotationHint.setPosition(pos.x + size * 0.2f, pos.y + size * 0.2f);
+        rotationHint.setFillColor(sf::Color::Transparent);
+        rotationHint.setOutlineThickness(1);
+        rotationHint.setOutlineColor(sf::Color(255, 100, 100, 150));
+        window.draw(rotationHint);
     }
 }
 
@@ -947,13 +1298,14 @@ void MenuManager::DrawMedievalScrollIndicators(sf::RenderWindow& window) {
     }
 }
 
-
 void MenuManager::Draw(sf::RenderWindow& window) {
-    if (m_backgroundTexture.getSize().x > 0) {
+    if (m_backgroundTexture.getSize().x > 0 && !m_gamePaused) {
         window.draw(m_backgroundSprite);
     }
 
-    window.draw(m_backgroundOverlay);
+    if (m_currentState != MenuState::GamePlay || !m_gamePaused) {
+        window.draw(m_backgroundOverlay);
+    }
 
     DrawBackgroundParticles(window);
 
@@ -1009,8 +1361,8 @@ void MenuManager::DrawBackgroundParticles(sf::RenderWindow& window) {
     float deltaTime = particleClock.restart().asSeconds();
     for (auto& particle : particles) {
         sf::Vector2f pos = particle.getPosition();
-        pos.y -= 20 * deltaTime; 
-        pos.x += sin(pos.y * 0.01f) * 10 * deltaTime; 
+        pos.y -= 20 * deltaTime;
+        pos.x += sin(pos.y * 0.01f) * 10 * deltaTime;
 
         if (pos.y < -10) {
             pos.y = m_windowSize.y + 10;
@@ -1148,7 +1500,7 @@ void MenuManager::DrawScrollbar(sf::RenderWindow& window, sf::Vector2f dropdownP
     // Scrollbar handle
     if (maxScroll > 0) {
         float handleHeight = (dropdownHeight * 5) / m_availableResolutions.size();
-        handleHeight = std::max(20.0f, handleHeight); 
+        handleHeight = std::max(20.0f, handleHeight);
 
         float handleY = dropdownPos.y + (scrollIndex * (dropdownHeight - handleHeight)) / maxScroll;
 
@@ -1180,26 +1532,653 @@ void MenuManager::DrawScrollbar(sf::RenderWindow& window, sf::Vector2f dropdownP
 }
 
 void MenuManager::DrawPauseMenu(sf::RenderWindow& window) {
+    // Vẽ background overlay mờ cho pause menu
+    sf::RectangleShape pauseOverlay;
+    pauseOverlay.setSize(m_windowSize);
+    pauseOverlay.setFillColor(sf::Color(0, 0, 0, 120));
+    window.draw(pauseOverlay);
+
+    // Tính toán vị trí trung tâm
     sf::Vector2f centerPos = sf::Vector2f(
         (m_windowSize.x - m_pauseBackground.getSize().x) / 2,
         (m_windowSize.y - m_pauseBackground.getSize().y) / 2
     );
+    sf::Vector2f backgroundSize = m_pauseBackground.getSize();
     m_pauseBackground.setPosition(centerPos);
 
-    window.draw(m_pauseBackground);
+    // === HIỆU ỨNG KHÓI VÀ BỤI PHÉP THUẬT ===
+    DrawMysticalBackground(window);
 
+
+    // === 1. VẼ SHADOW VÀ HIỆU ỨNG ÁNH SÁNG MA THUẬT ===
+    DrawEnhancedMenuShadow(window, centerPos, backgroundSize);
+
+    // === 2. VẼ BACKGROUND CHÍNH VỚI HIỆU ỨNG CUỘN GIẤY ===
+    DrawScrollParchmentBackground(window, centerPos, backgroundSize);
+
+    // === 3. VẼ KHUNG VIỀN GOTHIC VỚI HOA VĂN ===
+    DrawGothicBorderWithRunes(window, centerPos, backgroundSize);
+
+    // === 4. VẼ CÁC TRANG TRÍ Ở 4 GÓC VỚI ANIMATION ===
+    DrawAnimatedCornerDecorations(window, centerPos, backgroundSize);
+
+    // === 5. VẼ TITLE VỚI HIỆU ỨNG RUNE MA THUẬT ===
+    DrawMagicalTitle(window, centerPos, backgroundSize);
+
+    // === 6. VẼ DECORATIVE BORDER PATTERN VỚI HIỆU ỨNG SÁNG ===
+    DrawEnhancedDecorativeBorder(window, centerPos, backgroundSize);
+
+    // === 7. VẼ PAUSE BUTTONS VỚI HIỆU ỨNG ENHANCED ===
     for (const auto& button : m_pauseButtons) {
         if (button.isVisible) {
-            window.draw(button.shape);
-            window.draw(button.text);
+            DrawEnhancedMedievalButton(window, button);
         }
     }
+
+    // === 8. VẼ AMBIENT MAGICAL PARTICLES ===
+    DrawEnhancedMagicalParticles(window, centerPos, backgroundSize);
+
+    // === 9. VẼ FLOATING RUNES AROUND MENU ===
+    DrawFloatingRunes(window, centerPos, backgroundSize);
+}
+
+// === HIỆU ỨNG KHÓI VÀ BỤI PHÉP THUẬT ===
+void MenuManager::DrawMysticalBackground(sf::RenderWindow& window) {
+    static std::vector<sf::CircleShape> smokeParticles;
+    static std::vector<sf::Vector2f> smokeVelocities;
+    static sf::Clock smokeClock;
+
+    // Initialize smoke particles
+    if (smokeParticles.empty()) {
+        for (int i = 0; i < 15; i++) {
+            sf::CircleShape smoke(20 + rand() % 30);
+            smoke.setPosition(
+                static_cast<float>(rand() % static_cast<int>(m_windowSize.x)),
+                m_windowSize.y + smoke.getRadius()
+            );
+
+            sf::Uint8 alpha = 20 + rand() % 40;
+            smoke.setFillColor(sf::Color(100, 100, 120, alpha));
+            smokeParticles.push_back(smoke);
+
+            // Random velocity for each particle
+            smokeVelocities.push_back(sf::Vector2f(
+                (rand() % 20 - 10) * 0.5f, // Horizontal drift
+                -(20 + rand() % 30) // Upward movement
+            ));
+        }
+    }
+
+    float deltaTime = smokeClock.restart().asSeconds();
+
+    for (size_t i = 0; i < smokeParticles.size(); i++) {
+        sf::Vector2f pos = smokeParticles[i].getPosition();
+        pos += smokeVelocities[i] * deltaTime;
+
+        // Add floating motion
+        pos.x += sin(pos.y * 0.01f + i) * 10 * deltaTime;
+
+        // Reset particle when it goes off screen
+        if (pos.y < -smokeParticles[i].getRadius()) {
+            pos.y = m_windowSize.y + smokeParticles[i].getRadius();
+            pos.x = static_cast<float>(rand() % static_cast<int>(m_windowSize.x));
+        }
+
+        smokeParticles[i].setPosition(pos);
+        window.draw(smokeParticles[i]);
+    }
+}
+
+// === SHADOW VÀ HIỆU ỨNG ÁNH SÁNG MA THUẬT ===
+void MenuManager::DrawEnhancedMenuShadow(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock glowClock;
+    float time = glowClock.getElapsedTime().asSeconds();
+
+    // Multi-layered shadow for depth
+    for (int i = 4; i >= 1; i--) {
+        sf::RectangleShape shadow;
+        shadow.setSize(backgroundSize);
+        shadow.setPosition(centerPos.x + i * 3, centerPos.y + i * 3);
+        sf::Uint8 alpha = 60 * i;
+        shadow.setFillColor(sf::Color(0, 0, 0, alpha));
+        window.draw(shadow);
+    }
+
+    // Magical glow pulse around menu
+    float glowIntensity = 1.0f + 0.3f * sin(time * 1.5f);
+    for (int i = 0; i < 3; i++) {
+        sf::RectangleShape magicalGlow;
+        magicalGlow.setSize(sf::Vector2f(
+            backgroundSize.x + (i + 1) * 20 * glowIntensity,
+            backgroundSize.y + (i + 1) * 20 * glowIntensity
+        ));
+        magicalGlow.setPosition(
+            centerPos.x - (i + 1) * 10 * glowIntensity,
+            centerPos.y - (i + 1) * 10 * glowIntensity
+        );
+        magicalGlow.setFillColor(sf::Color::Transparent);
+        magicalGlow.setOutlineThickness(2);
+
+        sf::Uint8 alpha = static_cast<sf::Uint8>(80 - i * 25);
+        sf::Color glowColor = (i % 2 == 0) ? MEDIEVAL_FIRE_GLOW : MEDIEVAL_MAGIC_GLOW;
+        glowColor.a = alpha;
+        magicalGlow.setOutlineColor(glowColor);
+        window.draw(magicalGlow);
+    }
+}
+
+// === HIỆU ỨNG CUỘN GIẤY ===
+void MenuManager::DrawScrollParchmentBackground(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock scrollClock;
+    float time = scrollClock.getElapsedTime().asSeconds();
+
+    // Vẽ background parchment với hiệu ứng cuộn
+    if (m_parchmentTexture.getSize().x > 0) {
+        sf::Sprite parchmentSprite;
+        parchmentSprite.setTexture(m_parchmentTexture);
+
+        sf::Vector2u parchmentSize = m_parchmentTexture.getSize();
+        float scaleX = backgroundSize.x / static_cast<float>(parchmentSize.x);
+        float scaleY = backgroundSize.y / static_cast<float>(parchmentSize.y);
+
+        parchmentSprite.setScale(scaleX, scaleY);
+        parchmentSprite.setPosition(centerPos);
+
+        // Subtle breathing effect
+        float breathe = 1.0f + 0.02f * sin(time * 0.8f);
+        parchmentSprite.setScale(scaleX * breathe, scaleY * breathe);
+
+        parchmentSprite.setColor(sf::Color(255, 255, 255, 220));
+        window.draw(parchmentSprite);
+    }
+
+    // Vẽ scroll edges với hiệu ứng cuộn
+    float edgeWidth = 30;
+
+    // Left scroll edge
+    sf::RectangleShape leftEdge;
+    leftEdge.setSize(sf::Vector2f(edgeWidth, backgroundSize.y));
+    leftEdge.setPosition(centerPos.x - edgeWidth / 2, centerPos.y);
+    leftEdge.setFillColor(sf::Color(139, 69, 19, 200));
+
+    // Add curved appearance
+    sf::CircleShape leftCylinder(edgeWidth / 2);
+    leftCylinder.setPosition(centerPos.x - edgeWidth, centerPos.y);
+    leftCylinder.setFillColor(sf::Color(101, 67, 33, 255));
+    window.draw(leftCylinder);
+    window.draw(leftEdge);
+
+    // Right scroll edge
+    sf::RectangleShape rightEdge;
+    rightEdge.setSize(sf::Vector2f(edgeWidth, backgroundSize.y));
+    rightEdge.setPosition(centerPos.x + backgroundSize.x - edgeWidth / 2, centerPos.y);
+    rightEdge.setFillColor(sf::Color(139, 69, 19, 200));
+
+    sf::CircleShape rightCylinder(edgeWidth / 2);
+    rightCylinder.setPosition(centerPos.x + backgroundSize.x - edgeWidth / 2, centerPos.y);
+    rightCylinder.setFillColor(sf::Color(101, 67, 33, 255));
+    window.draw(rightCylinder);
+    window.draw(rightEdge);
+
+    // Main parchment body
+    sf::RectangleShape parchmentBody;
+    parchmentBody.setSize(backgroundSize);
+    parchmentBody.setPosition(centerPos);
+    parchmentBody.setFillColor(sf::Color(245, 235, 200, 200));
+    window.draw(parchmentBody);
+}
+
+// === KHUNG VIỀN GOTHIC VỚI HOA VĂN RUNE ===
+void MenuManager::DrawGothicBorderWithRunes(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock runeClock;
+    float time = runeClock.getElapsedTime().asSeconds();
+
+    // Outer gothic frame với hiệu ứng sáng chạy
+    sf::RectangleShape gothicFrame;
+    gothicFrame.setSize(backgroundSize);
+    gothicFrame.setPosition(centerPos);
+    gothicFrame.setFillColor(sf::Color::Transparent);
+    gothicFrame.setOutlineThickness(8);
+
+    // Animated gold color
+    sf::Uint8 goldIntensity = static_cast<sf::Uint8>(200 + 55 * sin(time * 2.0f));
+    sf::Color animatedGold(goldIntensity, static_cast<sf::Uint8>(goldIntensity * 0.8f), 0, 255);
+    gothicFrame.setOutlineColor(animatedGold);
+    window.draw(gothicFrame);
+
+    // Inner decorative frame
+    sf::RectangleShape innerFrame;
+    innerFrame.setSize(sf::Vector2f(backgroundSize.x - 20, backgroundSize.y - 20));
+    innerFrame.setPosition(centerPos.x + 10, centerPos.y + 10);
+    innerFrame.setFillColor(sf::Color::Transparent);
+    innerFrame.setOutlineThickness(2);
+    innerFrame.setOutlineColor(sf::Color(animatedGold.r, animatedGold.g, animatedGold.b, 120));
+    window.draw(innerFrame);
+
+    // Rune patterns along the border
+    DrawRunePatterns(window, centerPos, backgroundSize, time);
+}
+
+// === VẼ HOA VĂN RUNE DỌC VIỀN ===
+void MenuManager::DrawRunePatterns(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize, float time) {
+    // Ancient rune symbols (simplified geometric shapes)
+    std::vector<std::string> runes = { "◊", "◈", "◇", "⬦", "⟐", "⬟", "⬢", "⬡" };
+
+    float runeSize = 16;
+    int runeCount = 12;
+
+    for (int i = 0; i < runeCount; i++) {
+        float angle = (i * 2 * 3.14159f) / runeCount + time * 0.5f; // Slow rotation
+        float radiusX = backgroundSize.x / 2 + 25;
+        float radiusY = backgroundSize.y / 2 + 25;
+
+        sf::Text rune;
+        rune.setFont(m_font);
+        rune.setString(runes[i % runes.size()]);
+        rune.setCharacterSize(static_cast<unsigned int>(runeSize));
+
+        // Animated glow effect
+        float glowPhase = sin(time * 3.0f + i * 0.5f);
+        sf::Uint8 alpha = static_cast<sf::Uint8>(150 + 105 * glowPhase);
+        rune.setFillColor(sf::Color(255, 215, 0, alpha));
+
+        sf::Vector2f runePos(
+            centerPos.x + backgroundSize.x / 2 + cos(angle) * radiusX - runeSize / 2,
+            centerPos.y + backgroundSize.y / 2 + sin(angle) * radiusY - runeSize / 2
+        );
+        rune.setPosition(runePos);
+
+        // Glow effect
+        sf::Text runeGlow = rune;
+        runeGlow.setFillColor(sf::Color(255, 255, 255, alpha / 3));
+        runeGlow.setPosition(runePos.x + 1, runePos.y + 1);
+        window.draw(runeGlow);
+        window.draw(rune);
+    }
+}
+
+// === TRANG TRÍ GÓC VỚI ANIMATION ===
+void MenuManager::DrawAnimatedCornerDecorations(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock animationClock;
+    float time = animationClock.getElapsedTime().asSeconds();
+    float decorSize = 120.0f;
+
+    // **Góc trên trái - Đầu rồng với hiệu ứng thở lửa**
+    if (m_dragonHeadTexture.getSize().x > 0) {
+        sf::Sprite dragonSprite;
+        dragonSprite.setTexture(m_dragonHeadTexture);
+
+        sf::Vector2u dragonSize = m_dragonHeadTexture.getSize();
+        float dragonScale = decorSize / static_cast<float>(std::max(dragonSize.x, dragonSize.y));
+
+        // Subtle breathing animation
+        float breathe = 1.0f + 0.05f * sin(time * 1.2f);
+        dragonSprite.setScale(dragonScale * breathe, dragonScale * breathe);
+        dragonSprite.setPosition(centerPos.x - decorSize / 2, centerPos.y - decorSize / 2);
+
+        // Color animation (like glowing eyes)
+        sf::Uint8 intensity = static_cast<sf::Uint8>(200 + 55 * sin(time * 2.5f));
+        dragonSprite.setColor(sf::Color(255, intensity, intensity, 240));
+        window.draw(dragonSprite);
+
+        // Fire breath effect
+        if (sin(time * 0.8f) > 0.6f) {
+            for (int i = 0; i < 5; i++) {
+                sf::CircleShape flame(3 + rand() % 5);
+                float flameOffset = i * 8;
+                flame.setPosition(
+                    centerPos.x + flameOffset,
+                    centerPos.y - decorSize / 4 + (rand() % 10 - 5)
+                );
+                sf::Uint8 flameAlpha = 100 + rand() % 100;
+                flame.setFillColor(sf::Color(255, 100 + rand() % 100, 0, flameAlpha));
+                window.draw(flame);
+            }
+        }
+
+        // Dragon eye glow
+        sf::CircleShape eyeGlow(decorSize * 0.1f);
+        eyeGlow.setPosition(centerPos.x - decorSize * 0.2f, centerPos.y - decorSize * 0.3f);
+        sf::Uint8 eyeIntensity = static_cast<sf::Uint8>(100 + 155 * sin(time * 4.0f));
+        eyeGlow.setFillColor(sf::Color(255, 50, 0, eyeIntensity));
+        window.draw(eyeGlow);
+    }
+
+    // **Góc trên phải - Hiệp sĩ với ánh sáng từ thanh kiếm**
+    if (m_warriorTexture.getSize().x > 0) {
+        sf::Sprite warriorSprite;
+        warriorSprite.setTexture(m_warriorTexture);
+
+        sf::Vector2u warriorSize = m_warriorTexture.getSize();
+        float warriorScale = decorSize / static_cast<float>(std::max(warriorSize.x, warriorSize.y));
+        warriorSprite.setScale(warriorScale, warriorScale);
+        warriorSprite.setPosition(centerPos.x + backgroundSize.x - decorSize / 2, centerPos.y - decorSize / 2);
+
+        warriorSprite.setColor(sf::Color(200, 255, 200, 230));
+        window.draw(warriorSprite);
+
+        // Sword light beam
+        if (sin(time * 1.5f) > 0.3f) {
+            sf::RectangleShape lightBeam;
+            lightBeam.setSize(sf::Vector2f(decorSize * 0.6f, 4));
+            lightBeam.setPosition(
+                centerPos.x + backgroundSize.x - decorSize * 0.7f,
+                centerPos.y - decorSize * 0.2f
+            );
+            lightBeam.setRotation(30 + 10 * sin(time * 2.0f));
+
+            sf::Uint8 beamAlpha = static_cast<sf::Uint8>(150 + 105 * sin(time * 3.0f));
+            lightBeam.setFillColor(sf::Color(255, 255, 255, beamAlpha));
+            window.draw(lightBeam);
+        }
+
+        // Magical sparkles around warrior
+        for (int i = 0; i < 4; i++) {
+            sf::CircleShape sparkle(2, 4);
+            float sparkleAngle = time * 2 + i * 1.57f;
+            float sparkleRadius = 35 + 10 * sin(time * 1.5f + i);
+
+            sparkle.setPosition(
+                centerPos.x + backgroundSize.x - decorSize / 2 + cos(sparkleAngle) * sparkleRadius,
+                centerPos.y - decorSize / 2 + sin(sparkleAngle) * sparkleRadius
+            );
+
+            sf::Uint8 sparkleAlpha = static_cast<sf::Uint8>(100 + 155 * sin(time * 4 + i));
+            sparkle.setFillColor(sf::Color(150, 255, 150, sparkleAlpha));
+            window.draw(sparkle);
+        }
+    }
+
+    // **Góc dưới trái - Khiên và gươm với hiệu ứng kim loại**
+    if (m_shieldSwordTexture.getSize().x > 0) {
+        sf::Sprite shieldSprite;
+        shieldSprite.setTexture(m_shieldSwordTexture);
+
+        sf::Vector2u shieldSize = m_shieldSwordTexture.getSize();
+        float shieldScale = decorSize / static_cast<float>(std::max(shieldSize.x, shieldSize.y));
+        shieldSprite.setScale(shieldScale, shieldScale);
+        shieldSprite.setPosition(centerPos.x - decorSize / 2, centerPos.y + backgroundSize.y - decorSize / 2);
+
+        shieldSprite.setColor(sf::Color(220, 220, 255, 250));
+        window.draw(shieldSprite);
+
+        // Metal glint effect
+        if (sin(time * 2.0f) > 0.8f) {
+            sf::RectangleShape glint;
+            glint.setSize(sf::Vector2f(decorSize * 0.8f, 3));
+            glint.setPosition(
+                centerPos.x - decorSize * 0.4f,
+                centerPos.y + backgroundSize.y - decorSize / 3
+            );
+            glint.setRotation(25 + 10 * sin(time));
+            glint.setFillColor(sf::Color(255, 255, 255, 220));
+            window.draw(glint);
+        }
+
+        // Shield reflection
+        sf::CircleShape reflection(decorSize * 0.15f);
+        reflection.setPosition(
+            centerPos.x - decorSize * 0.3f,
+            centerPos.y + backgroundSize.y - decorSize * 0.4f
+        );
+        sf::Uint8 reflectionAlpha = static_cast<sf::Uint8>(50 + 100 * sin(time * 1.8f));
+        reflection.setFillColor(sf::Color(255, 255, 255, reflectionAlpha));
+        window.draw(reflection);
+    }
+
+    // **Góc dưới phải - Coat of Arms với hiệu ứng hoàng gia**
+    DrawEnhancedCoatOfArms(window, centerPos, backgroundSize, decorSize, time);
+}
+
+// === COAT OF ARMS VỚI HIỆU ỨNG HOÀNG GIA ===
+void MenuManager::DrawEnhancedCoatOfArms(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize, float decorSize, float time) {
+    sf::ConvexShape coatOfArms;
+    coatOfArms.setPointCount(6);
+    coatOfArms.setPoint(0, sf::Vector2f(centerPos.x + backgroundSize.x - decorSize / 2, centerPos.y + backgroundSize.y - decorSize));
+    coatOfArms.setPoint(1, sf::Vector2f(centerPos.x + backgroundSize.x - decorSize / 4, centerPos.y + backgroundSize.y - decorSize * 0.8f));
+    coatOfArms.setPoint(2, sf::Vector2f(centerPos.x + backgroundSize.x, centerPos.y + backgroundSize.y - decorSize / 2));
+    coatOfArms.setPoint(3, sf::Vector2f(centerPos.x + backgroundSize.x - decorSize / 4, centerPos.y + backgroundSize.y));
+    coatOfArms.setPoint(4, sf::Vector2f(centerPos.x + backgroundSize.x - decorSize / 2, centerPos.y + backgroundSize.y - decorSize / 4));
+    coatOfArms.setPoint(5, sf::Vector2f(centerPos.x + backgroundSize.x - decorSize * 0.75f, centerPos.y + backgroundSize.y));
+
+    // Animated royal gold
+    sf::Uint8 goldIntensity = static_cast<sf::Uint8>(200 + 55 * sin(time * 1.5f));
+    coatOfArms.setFillColor(sf::Color(goldIntensity, static_cast<sf::Uint8>(goldIntensity * 0.8f), 0, 255));
+    coatOfArms.setOutlineThickness(3);
+    coatOfArms.setOutlineColor(sf::Color(goldIntensity - 50, static_cast<sf::Uint8>((goldIntensity - 50) * 0.8f), 0, 255));
+    window.draw(coatOfArms);
+
+    // Royal crown on top of coat of arms
+    sf::ConvexShape crown;
+    crown.setPointCount(5);
+    float crownSize = decorSize * 0.3f;
+    sf::Vector2f crownCenter(
+        centerPos.x + backgroundSize.x - decorSize / 2,
+        centerPos.y + backgroundSize.y - decorSize * 0.9f
+    );
+
+    for (int i = 0; i < 5; i++) {
+        float angle = (i * 2 * 3.14159f) / 5 - 3.14159f / 2;
+        float radius = (i % 2 == 0) ? crownSize : crownSize * 0.7f;
+        crown.setPoint(i, sf::Vector2f(
+            crownCenter.x + cos(angle) * radius,
+            crownCenter.y + sin(angle) * radius
+        ));
+    }
+
+    crown.setFillColor(sf::Color(255, 215, 0, 200));
+    crown.setOutlineThickness(1);
+    crown.setOutlineColor(sf::Color(255, 255, 0, 255));
+    window.draw(crown);
+
+    // Jewels on the crown
+    for (int i = 0; i < 3; i++) {
+        sf::CircleShape jewel(3, 6);
+        jewel.setPosition(
+            crownCenter.x - crownSize + i * crownSize,
+            crownCenter.y - crownSize * 0.5f
+        );
+
+        sf::Color jewelColor;
+        switch (i) {
+        case 0: jewelColor = sf::Color(255, 0, 0, 200); break; // Ruby
+        case 1: jewelColor = sf::Color(0, 0, 255, 200); break; // Sapphire  
+        case 2: jewelColor = sf::Color(0, 255, 0, 200); break; // Emerald
+        }
+
+        // Twinkling effect
+        sf::Uint8 twinkle = static_cast<sf::Uint8>(100 + 155 * sin(time * 5 + i * 2));
+        jewelColor.a = twinkle;
+        jewel.setFillColor(jewelColor);
+        window.draw(jewel);
+    }
+}
+
+// === TITLE VỚI HIỆU ỨNG RUNE MA THUẬT ===
+void MenuManager::DrawMagicalTitle(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock titleClock;
+    float time = titleClock.getElapsedTime().asSeconds();
+
+    sf::Text pauseTitle;
+    pauseTitle.setFont(m_font);
+    pauseTitle.setString("GAME PAUSED");
+    pauseTitle.setCharacterSize(42);
+    pauseTitle.setFillColor(MEDIEVAL_TEXT_GOLD);
+    pauseTitle.setStyle(sf::Text::Bold);
+    sf::FloatRect titleBounds = pauseTitle.getLocalBounds();
+    pauseTitle.setPosition(
+        centerPos.x + (backgroundSize.x - titleBounds.width) / 2,
+        centerPos.y + 15
+    );
+
+    // Multi-layered shadow
+    for (int i = 4; i >= 1; i--) {
+        sf::Text titleShadow = pauseTitle;
+        titleShadow.setPosition(pauseTitle.getPosition().x + i * 1.5f, pauseTitle.getPosition().y + i * 1.5f);
+        sf::Color shadowColor;
+        switch (i) {
+        case 4: shadowColor = sf::Color(0, 0, 0, 80); break;
+        case 3: shadowColor = sf::Color(50, 0, 0, 60); break;
+        case 2: shadowColor = sf::Color(100, 50, 0, 40); break;
+        case 1: shadowColor = sf::Color(150, 100, 0, 20); break;
+        }
+        titleShadow.setFillColor(shadowColor);
+        window.draw(titleShadow);
+    }
+
+    // Magical glow
+    sf::Text titleGlow = pauseTitle;
+    float glowPhase = sin(time * 2.0f);
+    sf::Uint8 glowAlpha = static_cast<sf::Uint8>(60 + 40 * glowPhase);
+    sf::Color glowColor = (sin(time * 0.8f) > 0) ? sf::Color(255, 200, 100, glowAlpha) : sf::Color(150, 200, 255, glowAlpha);
+    titleGlow.setFillColor(glowColor);
+    titleGlow.setPosition(
+        pauseTitle.getPosition().x + 2 * sin(time * 1.5f),
+        pauseTitle.getPosition().y + 1 * cos(time * 1.5f)
+    );
+    window.draw(titleGlow);
+    window.draw(pauseTitle);
+
+    // Floating runes around title
+    std::vector<std::string> titleRunes = { "⚡", "✦", "⭐", "✧" };
+    for (size_t i = 0; i < titleRunes.size(); i++) {
+        sf::Text floatingRune;
+        floatingRune.setFont(m_font);
+        floatingRune.setString(titleRunes[i]);
+        floatingRune.setCharacterSize(20);
+        float angle = (i * 2 * 3.14159f) / titleRunes.size() + time * 0.8f;
+        float radius = 50 + 10 * sin(time + i);
+        sf::Vector2f runePos(
+            pauseTitle.getPosition().x + titleBounds.width / 2 + cos(angle) * radius,
+            pauseTitle.getPosition().y + sin(angle) * radius
+        );
+        floatingRune.setPosition(runePos);
+        sf::Uint8 runeAlpha = static_cast<sf::Uint8>(150 + 100 * sin(time * 2.0f + i));
+        floatingRune.setFillColor(sf::Color(255, 215, 0, runeAlpha));
+        sf::Text runeGlow = floatingRune;
+        runeGlow.setFillColor(sf::Color(255, 255, 255, runeAlpha / 3));
+        runeGlow.setPosition(runePos.x + 1, runePos.y + 1);
+        window.draw(runeGlow);
+        window.draw(floatingRune);
+    }
+}
+
+void MenuManager::DrawEnhancedDecorativeBorder(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    float time = m_pauseGlowClock.getElapsedTime().asSeconds();
+    sf::RectangleShape innerFrame;
+    innerFrame.setSize(sf::Vector2f(backgroundSize.x - 20, backgroundSize.y - 20));
+    innerFrame.setPosition(centerPos.x + 10, centerPos.y + 10);
+    innerFrame.setFillColor(sf::Color::Transparent);
+    innerFrame.setOutlineThickness(2);
+    sf::Uint8 goldIntensity = static_cast<sf::Uint8>(200 + 55 * sin(time * 2.0f));
+    innerFrame.setOutlineColor(sf::Color(goldIntensity, static_cast<sf::Uint8>(goldIntensity * 0.8f), 0, 120));
+    window.draw(innerFrame);
+
+    // Corner ornaments
+    for (int i = 0; i < 4; i++) {
+        sf::CircleShape ornament(10, 6);
+        sf::Vector2f pos;
+        if (i == 0) pos = centerPos;
+        else if (i == 1) pos = sf::Vector2f(centerPos.x + backgroundSize.x, centerPos.y);
+        else if (i == 2) pos = sf::Vector2f(centerPos.x, centerPos.y + backgroundSize.y);
+        else pos = sf::Vector2f(centerPos.x + backgroundSize.x, centerPos.y + backgroundSize.y);
+        ornament.setPosition(pos.x - 10, pos.y - 10);
+        ornament.setFillColor(sf::Color(goldIntensity, static_cast<sf::Uint8>(goldIntensity * 0.8f), 0, 200));
+        window.draw(ornament);
+    }
+}
+
+void MenuManager::DrawEnhancedMagicalParticles(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock particleClock;
+    float time = particleClock.getElapsedTime().asSeconds();
+
+    if (m_magicalParticles.empty()) {
+        for (int i = 0; i < 20; i++) {
+            sf::CircleShape particle(2 + rand() % 3);
+            particle.setPosition(
+                centerPos.x + (rand() % static_cast<int>(backgroundSize.x)),
+                centerPos.y + backgroundSize.y
+            );
+            particle.setFillColor(sf::Color(255, 215, 0, 150));
+            m_magicalParticles.push_back(particle);
+            m_smokeVelocities.push_back(sf::Vector2f(
+                (rand() % 10 - 5) * 0.2f,
+                -(10 + rand() % 20)
+            ));
+        }
+    }
+
+    float deltaTime = particleClock.restart().asSeconds();
+    for (size_t i = 0; i < m_magicalParticles.size(); i++) {
+        sf::Vector2f pos = m_magicalParticles[i].getPosition();
+        pos += m_smokeVelocities[i] * deltaTime;
+        pos.x += sin(pos.y * 0.02f + i) * 5 * deltaTime;
+        if (pos.y < centerPos.y - 50) {
+            pos.y = centerPos.y + backgroundSize.y;
+            pos.x = centerPos.x + (rand() % static_cast<int>(backgroundSize.x));
+        }
+        m_magicalParticles[i].setPosition(pos);
+        sf::Uint8 alpha = static_cast<sf::Uint8>(100 + 100 * sin(time * 3 + i));
+        m_magicalParticles[i].setFillColor(sf::Color(255, 215, 0, alpha));
+        window.draw(m_magicalParticles[i]);
+    }
+}
+
+void MenuManager::DrawFloatingRunes(sf::RenderWindow& window, sf::Vector2f centerPos, sf::Vector2f backgroundSize) {
+    static sf::Clock runeClock;
+    float time = runeClock.getElapsedTime().asSeconds();
+    std::vector<std::string> runes = { "⚡", "✦", "⭐", "✧", "◊", "◈" };
+    for (size_t i = 0; i < 6; i++) {
+        sf::Text rune;
+        rune.setFont(m_font);
+        rune.setString(runes[i % runes.size()]);
+        rune.setCharacterSize(18);
+        float angle = (i * 2 * 3.14159f) / 6 + time * 0.3f;
+        float radius = backgroundSize.x / 2 + 50 + 10 * sin(time + i);
+        sf::Vector2f pos(
+            centerPos.x + backgroundSize.x / 2 + cos(angle) * radius,
+            centerPos.y + backgroundSize.y / 2 + sin(angle) * radius
+        );
+        rune.setPosition(pos);
+        sf::Uint8 alpha = static_cast<sf::Uint8>(150 + 100 * sin(time * 2 + i));
+        rune.setFillColor(sf::Color(150, 200, 255, alpha));
+        window.draw(rune);
+    }
+}
+
+void MenuManager::DrawEnhancedMedievalButton(sf::RenderWindow& window, const Button& button) {
+    if (!button.isVisible) return;
+
+    sf::Vector2f pos = button.shape.getPosition();
+    sf::Vector2f size = button.shape.getSize();
+    DrawButtonShadow(window, pos, size);
+    DrawButtonBase(window, button, pos, size);
+    DrawDecorativeFrame(window, button, pos, size);
+    DrawButtonRivets(window, button, pos, size);
+    DrawTextureOverlay(window, button, pos, size);
+    DrawButtonIcon(window, button, pos, size);
+    DrawButtonText(window, button);
+    DrawDecorativeGem(window, button, pos, size);
+    DrawMagicalEffects(window, button, pos, size);
 }
 
 void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
             sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+
+            if (m_gamePaused && m_currentState == MenuState::GamePlay) {
+                for (auto& button : m_pauseButtons) {
+                    if (button.isVisible && IsMouseOverButton(button, mousePos)) {
+                        button.state = ButtonState::Pressed;
+                        if (button.callback) {
+                            button.callback(window);
+                        }
+                        return; // Dừng xử lý sau khi click pause button
+                    }
+                }
+                return; // Nếu đang pause, không xử lý input khác
+            }
 
             // Prioritize sliders
             for (auto& slider : m_sliders) {
@@ -1278,7 +2257,7 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
 
                 // Clamp scroll offset
                 int maxScroll = std::max(0, (int)m_availableResolutions.size() - 5);
-                m_resolutionScrollOffset = std::max(0.0f, 
+                m_resolutionScrollOffset = std::max(0.0f,
                     std::min(m_resolutionScrollOffset, static_cast<float>(maxScroll * BUTTON_HEIGHT)));
                 UpdateVisibleResolutions();
             }
@@ -1319,6 +2298,7 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
             }
         }
         else if (event.key.code == sf::Keyboard::Escape) {
+
             if (m_waitingForNameInput) {
                 SetWaitingForInput(false);
                 ClearInputText();
@@ -1327,7 +2307,7 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
             else {
                 if (m_resolutionDropdownOpen) {
                     m_resolutionDropdownOpen = false;
-                }  
+                }
                 else {
                     switch (m_currentState) {
                     case MenuState::ProfileMenu:
@@ -1353,6 +2333,12 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
                             m_sliders.clear();
                             m_resolutionDropdownButtons.clear();
                             CreatePauseMenu(); // Tạo lại PauseMenu
+                            if (!m_ambientSoundsPlaying) {
+                                SoundManager::getInstance().PauseBackgroundMusic();
+                                SoundManager::getInstance().StartAmbientSoundCycle();
+                                m_ambientSoundsPlaying = true;
+                            }
+
                             std::cout << "Returning to Pause Menu from Settings" << std::endl;
                         }
                         else {
@@ -1369,12 +2355,17 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
     }
 }
 
+
 void MenuManager::TogglePauseMenu() {
     m_gamePaused = !m_gamePaused;
 
     if (m_gamePaused) {
         CreatePauseMenu();
         m_currentState = MenuState::GamePlay;
+        SoundManager::getInstance().PauseBackgroundMusic();
+        SoundManager::getInstance().StartAmbientSoundCycle();
+
+        m_ambientSoundsPlaying = true;
         std::cout << "Game paused" << std::endl;
     }
     else {
@@ -1383,9 +2374,14 @@ void MenuManager::TogglePauseMenu() {
         m_buttons.clear(); // Xóa mọi nút menu khác
         m_sliders.clear();
         m_resolutionDropdownButtons.clear();
+        SoundManager::getInstance().StopAmbientSounds();
+        SoundManager::getInstance().ResumeBackgroundMusic();
+        m_ambientSoundsPlaying = false;
         std::cout << "Game resumed" << std::endl;
     }
 }
+
+
 
 void MenuManager::CreatePauseMenu() {
     m_pauseButtons.clear();
@@ -1395,60 +2391,125 @@ void MenuManager::CreatePauseMenu() {
         (m_windowSize.y - m_pauseBackground.getSize().y) / 2
     );
 
+    //m_pauseBackground.setFillColor(sf::Color(15, 15, 25, 220)); // Tăng độ đục
+    //m_pauseBackground.setOutlineThickness(3); // Tăng độ dày viền
+    m_pauseBackground.setOutlineColor(MEDIEVAL_GOLD); // Đổi thành màu vàng medieval
+
     float buttonWidth = 200;
     float buttonHeight = 50;
     float buttonSpacing = 70;
-    float startY = centerPos.y + 40;
+    float startY = centerPos.y + 80;
 
     CreatePauseButton("Continue",
         sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY),
         sf::Vector2f(buttonWidth, buttonHeight),
         [this](sf::RenderWindow&) {
             TogglePauseMenu();
-        });
+        },
+        ButtonStyle::Shield,
+        ButtonIcon::Target);
 
-    CreatePauseButton("Settings",
+    CreatePauseButton("Restart",
         sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
-        sf::Vector2f(buttonWidth, buttonHeight),
-        [this](sf::RenderWindow&) {
-            m_previousState = MenuState::GamePlay;
-            SetMenuState(MenuState::Settings);
-        });
-
-    CreatePauseButton("Exit",
-        sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
         sf::Vector2f(buttonWidth, buttonHeight),
         [this](sf::RenderWindow&) {
             m_gamePaused = false;
             m_pauseButtons.clear();
-            SetMenuState(MenuState::ProfileMenu);
-            std::cout << "Exiting to Profile Menu" << std::endl;
-        });
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentLevel);
+            }
+        },
+        ButtonStyle::WoodPlank,
+        ButtonIcon::Restart);
+
+    CreatePauseButton("Settings",
+        sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow&) {
+            m_previousState = MenuState::GamePlay;
+            SetMenuState(MenuState::Settings);
+        },
+        ButtonStyle::Stone,
+        ButtonIcon::Gear);
+
+
+
+    CreatePauseButton("Main Menu",
+        sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 3),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow&) {
+            SetMenuState(MenuState::MainMenu);
+            m_gamePaused = false;
+            m_buttons.clear();
+            m_sliders.clear();
+            m_resolutionDropdownButtons.clear();
+            CreateMainMenu();
+            std::cout << "Returning to Main Menu from pause..." << std::endl;
+        },
+        ButtonStyle::WoodPlank,
+        ButtonIcon::Crown);
+
+    CreatePauseButton("Exit",
+        sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 4),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow& window) {
+            if (m_exitCallback) {
+                m_exitCallback(window);
+            }
+        },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
+
+    m_pauseBackground.setPosition(
+        (m_windowSize.x - m_pauseBackground.getSize().x) / 2,
+        startY - 20
+    );
+    m_pauseBackground.setOutlineThickness(0);
 }
 
 void MenuManager::CreatePauseButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
-    std::function<void(sf::RenderWindow&)> callback) {
+    std::function<void(sf::RenderWindow&)> callback,
+    ButtonStyle style, ButtonIcon icon, bool isDeleteButton) {
     Button button;
     button.shape.setPosition(position);
     button.shape.setSize(size);
-    button.shape.setFillColor(BUTTON_NORMAL_COLOR);
-    button.shape.setOutlineThickness(2);
-    button.shape.setOutlineColor(sf::Color::White);
-    button.isDeleteButton = false;
+    button.style = style;
+    button.icon = icon;
+    button.isDeleteButton = isDeleteButton;
+
+    // Set base color based on button type
+    if (isDeleteButton) {
+        button.shape.setFillColor(DELETE_BUTTON_COLOR);
+    }
+    else {
+        button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+    }
+
+    button.shape.setOutlineThickness(4);
+    button.shape.setOutlineColor(MEDIEVAL_GOLD);
 
     button.text.setFont(m_font);
     button.text.setString(text);
 
-    int fontSize = 20;
+    int fontSize = 22;
     if (text.length() > 20) {
-        fontSize = 16;
+        fontSize = 18;
     }
     else if (text.length() > 15) {
-        fontSize = 18;
+        fontSize = 20;
     }
     button.text.setCharacterSize(fontSize);
     button.text.setFillColor(TEXT_COLOR);
-    CenterText(button.text, button.shape);
+    button.text.setStyle(sf::Text::Bold);
+
+    // Tạo text shadow
+    button.textShadow.setFont(m_font);
+    button.textShadow.setString(text);
+    button.textShadow.setCharacterSize(fontSize);
+    button.textShadow.setFillColor(MEDIEVAL_SHADOW);
+    button.textShadow.setStyle(sf::Text::Bold);
+
+    CenterTextWithShadow(button.text, button.textShadow, button.shape);
 
     button.callback = callback;
     button.state = ButtonState::Normal;
@@ -1471,6 +2532,19 @@ void MenuManager::SetMenuState(MenuState newState) {
 
     if (newState != MenuState::Settings) {
         m_tabButtons.clear();
+    }
+
+    if (newState == MenuState::GamePlay && m_gamePaused) {
+        // Khi vào Pause Menu
+        SoundManager::getInstance().PauseBackgroundMusic();
+        SoundManager::getInstance().StartAmbientSoundCycle();
+        m_ambientSoundsPlaying = true;
+    }
+    else if (newState != MenuState::GamePlay && m_ambientSoundsPlaying) {
+        // Khi vào các menu khác
+        SoundManager::getInstance().StopAmbientSounds();
+        SoundManager::getInstance().ResumeBackgroundMusic();
+        m_ambientSoundsPlaying = false;
     }
 
     if (!(newState == MenuState::Settings && m_previousState == MenuState::GamePlay)) {
@@ -1501,6 +2575,9 @@ void MenuManager::SetMenuState(MenuState newState) {
     case MenuState::GamePlay:
         m_titleText.setString("");
         m_titleShadow.setString("");
+        if (m_gamePaused) {
+            CreatePauseMenu();
+        }
         break;
     }
 }
@@ -1573,6 +2650,13 @@ sf::Vector2f MenuManager::ScalePosition(sf::Vector2f originalPos, sf::Vector2f o
 
 void MenuManager::CreateSettingsMenu() {
     m_gamePaused = false;
+
+    if (m_previousState != MenuState::GamePlay && m_ambientSoundsPlaying) {
+        SoundManager::getInstance().StopAmbientSounds();
+        SoundManager::getInstance().ResumeBackgroundMusic();
+        m_ambientSoundsPlaying = false;
+    }
+
     m_titleText.setString("Settings");
     sf::FloatRect titleBounds = m_titleText.getLocalBounds();
     m_titleText.setPosition((m_windowSize.x - titleBounds.width) / 2, 60);
@@ -1616,7 +2700,11 @@ void MenuManager::CreateSettingsMenu() {
                 m_tabButtons.clear();
                 m_resolutionDropdownButtons.clear();
                 CreatePauseMenu();
-                std::cout << "Returning to Pause Menu from Settings" << std::endl;
+                if (!m_ambientSoundsPlaying) {
+                    SoundManager::getInstance().PauseBackgroundMusic();
+                    SoundManager::getInstance().StartAmbientSoundCycle();
+                    m_ambientSoundsPlaying = true;
+                }
             }
             else {
                 SetMenuState(MenuState::MainMenu);
@@ -2003,6 +3091,24 @@ void MenuManager::UpdateSliderValue(Slider& slider, sf::Vector2f mousePos) {
     }
 }
 
+void MenuManager::SetWaitingForInput(bool waiting) {
+    m_waitingForNameInput = waiting;
+
+    if (waiting) {
+        // Setup input box focus
+        m_inputBox.setOutlineColor(INPUT_BOX_FOCUS_COLOR);
+        m_inputBox.setOutlineThickness(4);
+    }
+    else {
+        // Remove input box focus
+        m_inputBox.setOutlineColor(INPUT_BOX_BORDER_COLOR);
+        m_inputBox.setOutlineThickness(3);
+        ClearInputText();
+    }
+}
+
+
+
 void MenuManager::CreateProfileMenu() {
     m_titleShadow.setString("");
 
@@ -2018,7 +3124,7 @@ void MenuManager::CreateProfileMenu() {
 
     float startY = m_windowSize.y / 2 - 100;
 
-    CreateButton("New Profile",
+    CreateMedievalButton("New Profile",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
         [this](sf::RenderWindow&) {
@@ -2028,29 +3134,37 @@ void MenuManager::CreateProfileMenu() {
             else {
                 SetMenuState(MenuState::CreateProfile);
             }
-        });
+        },
+        ButtonStyle::Shield,
+        ButtonIcon::Shield);
 
-    CreateButton("Existing Profile",
+    CreateMedievalButton("Existing Profile",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + BUTTON_SPACING),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
-        [this](sf::RenderWindow&) { SetMenuState(MenuState::ChooseProfile); });
+        [this](sf::RenderWindow&) { SetMenuState(MenuState::ChooseProfile); },
+        ButtonStyle::WoodPlank,
+        ButtonIcon::Crown);
 
-    CreateButton("Play as Guest",
+    CreateMedievalButton("Play as Guest",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + BUTTON_SPACING * 2),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
         [this](sf::RenderWindow&) {
             m_currentProfile = nullptr;
             SetMenuState(MenuState::MainMenu);
-        });
+        },
+        ButtonStyle::Stone,
+        ButtonIcon::Sword);
 
-    CreateButton("Exit",
+    CreateMedievalButton("Exit",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + BUTTON_SPACING * 3),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
         [this](sf::RenderWindow& window) {
             if (m_exitCallback) {
                 m_exitCallback(window);
             }
-        });
+        },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
 }
 
 
@@ -2147,20 +3261,30 @@ void MenuManager::CreateMainMenu() {
 
     float startY = m_windowSize.y / 2 - 50;
 
-    CreateButton("Play",
+    if (m_ambientSoundsPlaying) {
+        SoundManager::getInstance().StopAmbientSounds();
+        SoundManager::getInstance().ResumeBackgroundMusic();
+        m_ambientSoundsPlaying = false;
+    }
+    CreateMedievalButton("Play",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
-        [this](sf::RenderWindow&) { SetMenuState(MenuState::PlayMenu); });
+        [this](sf::RenderWindow&) { SetMenuState(MenuState::PlayMenu); },
+        ButtonStyle::WoodPlank,
+        ButtonIcon::Sword);
 
-    CreateButton("Settings",
+    CreateMedievalButton("Settings",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + BUTTON_SPACING),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
-        [this](sf::RenderWindow&) { SetMenuState(MenuState::Settings); });
-
-    CreateButton("Back",
+        [this](sf::RenderWindow&) { SetMenuState(MenuState::Settings); },
+        ButtonStyle::Stone,
+        ButtonIcon::Gear);
+    CreateMedievalButton("Back",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + BUTTON_SPACING * 2),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
-        [this](sf::RenderWindow&) { SetMenuState(MenuState::ProfileMenu); });
+        [this](sf::RenderWindow&) { SetMenuState(MenuState::ProfileMenu); },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
 }
 
 void MenuManager::CreatePlayMenu() {
@@ -2172,17 +3296,20 @@ void MenuManager::CreatePlayMenu() {
     int totalLevels = 4;
     for (int i = 1; i <= totalLevels; ++i) {
         std::string levelText = "Level " + std::to_string(i);
-        CreateButton(levelText,
+        CreateMedievalButton(levelText,
             sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + (i - 1) * BUTTON_SPACING),
             sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
             [this, i](sf::RenderWindow&) {
+                m_currentLevel = 1;
                 if (m_startGameCallback) {
                     m_startGameCallback(i);
                 }
-            });
+            },
+            ButtonStyle::WoodPlank,
+            ButtonIcon::Target);
     }
 
-    CreateButton("Back",
+    CreateMedievalButton("Back",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + totalLevels * BUTTON_SPACING),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
         [this](sf::RenderWindow&) {
@@ -2198,7 +3325,9 @@ void MenuManager::CreatePlayMenu() {
             else {
                 SetMenuState(MenuState::MainMenu);
             }
-        });
+        },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
 }
 
 void MenuManager::CreateButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
@@ -2262,6 +3391,29 @@ void MenuManager::CreateDeleteButton(const std::string& text, sf::Vector2f posit
 
 void MenuManager::UpdateButtons(sf::RenderWindow& window) {
     sf::Vector2f mousePos = sf::Vector2f(sf::Mouse::getPosition(window));
+
+    if (m_gamePaused && m_currentState == MenuState::GamePlay) {
+        for (auto& button : m_pauseButtons) {
+            if (!button.isVisible) continue;
+
+            if (IsMouseOverButton(button, mousePos)) {
+                if (button.state != ButtonState::Pressed) {
+                    button.state = ButtonState::Hovered;
+                    button.shape.setFillColor(BUTTON_HOVER_GRADIENT_START);
+                }
+            }
+            else {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(MEDIEVAL_WOOD_DARK);
+            }
+
+            if (button.state == ButtonState::Pressed) {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(MEDIEVAL_WOOD_DARK);
+            }
+        }
+        return; // Dừng xử lý nếu đang pause
+    }
 
     for (auto& button : m_buttons) {
         if (!button.isVisible) continue;
@@ -2350,11 +3502,6 @@ void MenuManager::DrawButtons(sf::RenderWindow& window) {
             );
             buttonShadow.setFillColor(sf::Color(0, 0, 0, 80));
             buttonShadow.setOutlineThickness(0);
-            window.draw(buttonShadow);
-
-            window.draw(button.shape);
-
-            window.draw(button.textShadow);
             window.draw(button.text);
         }
     }
@@ -2393,7 +3540,7 @@ void MenuManager::DrawButtons(sf::RenderWindow& window) {
             downArrow.setPosition(scrollIndicator.getPosition().x + 2, scrollIndicator.getPosition().y);
             window.draw(downArrow);
         }
-    }   
+    }
 }
 
 bool MenuManager::IsMouseOverButton(const Button& button, sf::Vector2f mousePos) {
@@ -2780,3 +3927,4 @@ void MenuManager::LoadProfilesFromFile() {
 void MenuManager::SetStartGameCallback(std::function<void(int)> callback) {
     m_startGameCallback = callback;
 }
+
