@@ -2,223 +2,257 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 using namespace std;
-#ifndef ENTITY_H	
+#ifndef ENTITY_H
 #define ENTITY_H
 
 class Entity : public sf::Drawable
 {
 public:
-	struct PhysicsData {
-		PhysicsData() {
-			m_vImpulse = sf::Vector2f(0.0f, 0.0f);
-		}
+    struct PhysicsData {
+        PhysicsData() {
+            m_vImpulse = sf::Vector2f(0.0f, 0.0f);
+        }
 
-		enum Layer {
-			Enemy = 1, //0b0001
-			Tower = 2, //0b0010
-			Projectile = 4 // 0b0100
-		};
-		enum class Shape {
-			Circle,
-			Rectangle
-		};
+        enum Layer {
+            Enemy = 1, //0b0001
+            Tower = 2, //0b0010
+            Projectile = 4 // 0b0100
+        };
+        enum class Shape {
+            Circle,
+            Rectangle
+        };
+        enum class Type {
+            Static,
+            Dynamic
+        };
+        Shape m_eShape;
+        Type m_eType;
 
-		enum class Type {
-			Static,
-			Dynamic
-		};
-		Shape m_eShape;
-		Type m_eType;
+        void setLayers(int layers) {
+            m_iMyLayer = layers;
+        }
 
-		void setLayers(int layers) {
-			m_iMyLayer = layers;
-		}
+        void setLayersToIgnore(int layers) {
+            m_iLayersToIgnore = layers;
+        }
 
-		void setLayersToIgnore(int layers) {
-			m_iLayersToIgnore = layers;
-		}
+        int getLayersToIgnore() const {
+            return m_iLayersToIgnore;
+        }
 
-		int getLayersToIgnore() const {
-			return m_iLayersToIgnore;
-		}
+        bool IsInAnyLayer(int layer) const {
+            return (m_iMyLayer & layer) != 0;
+        }
 
-		bool IsInAnyLayer(int layer) const {
-			return (m_iMyLayer & layer) != 0;
-		}
+        void ClearCollisions() {
+            m_EntitiesThatCollidedWithAlready.clear();
+        }
 
-		void ClearCollisions() {
-			m_EntitiesThatCollidedWithAlready.clear();
-		}
+        bool HasCollidedThisUpdate(Entity* pOtherEntity) const {
+            for (Entity* pEntity : m_EntitiesThatCollidedWithAlready) {
+                if (pEntity == pOtherEntity) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-		bool HasCollidedThisUpdate(Entity* pOtherEntity) const {
-			for (Entity* pEntity : m_EntitiesThatCollidedWithAlready) {
-				if (pEntity == pOtherEntity) {
-					return true;
-				}
-			}
-			return false;
-		}
+        void AddEntityCollision(Entity* pOtherEntity) {
+            m_EntitiesThatCollidedWithAlready.push_back(pOtherEntity);
+        }
 
-		void AddEntityCollision(Entity* pOtherEntity) {
-			m_EntitiesThatCollidedWithAlready.push_back(pOtherEntity);
-		}
+        void ClearImpulse() {
+            m_vImpulse = sf::Vector2f(0.0f, 0.0f);
+        }
 
-		void ClearImpulse() {
-			m_vImpulse = sf::Vector2f(0.0f, 0.0f);
-		}
+        void AddImpulse(const sf::Vector2f& impulse) {
+            m_vImpulse += impulse;
+        }
 
-		void AddImpulse(const sf::Vector2f& impulse) {
-			m_vImpulse += impulse;
-		}
+        int m_iMyLayer;
+        int m_iLayersToIgnore;
 
-		int m_iMyLayer;
-		int m_iLayersToIgnore;
+        float m_fRadius; // For Circle shape
+        float m_fWidth; // For Rectangle shape
+        float m_fHeight; // For Rectangle shape
 
-		float m_fRadius; // For Circle shape
-		float m_fWidth; // For Rectangle shape
-		float m_fHeight; // For Rectangle shape
+        sf::Vector2f m_vVelocity;
+        sf::Vector2f m_vImpulse;
 
-		sf::Vector2f m_vVelocity;
-		sf::Vector2f m_vImpulse;
+        vector<Entity*> m_IgnoredEntities; // Entities to ignore for collision
+        vector<Entity*> m_EntitiesToIgnore;
+        vector<Entity*> m_EntitiesThatCollidedWithAlready;
+    };
 
-		vector<Entity*> m_IgnoredEntities; // Entities to ignore for collision
-		vector<Entity*> m_EntitiesToIgnore;
-		vector<Entity*> m_EntitiesThatCollidedWithAlready;
-	};
-	
-	Entity(PhysicsData::Type ePhysicsType);
-	~Entity() {};
+    Entity() : m_fAttackTimer(1.0f), m_bDeletionRequested(false), m_fAxeTimer(3.0f), m_iType(0), m_iGoldReward(0), m_iDamage(1) {
+        m_PhysicsData.m_eType = PhysicsData::Type::Dynamic;
+    }
 
-	void setCirclePhysics(float radius) {
-		m_PhysicsData.m_eShape = PhysicsData::Shape::Circle;
-		m_PhysicsData.m_fRadius = radius;
-	}
+    Entity(PhysicsData::Type ePhysicsType, int type = 0);
+    ~Entity() {};
 
-	void setRectanglePhysics(float width, float height) {
-		m_PhysicsData.m_eShape = PhysicsData::Shape::Rectangle;
-		m_PhysicsData.m_fWidth = width;
-		m_PhysicsData.m_fHeight = height;
-	}
+    void setCirclePhysics(float radius) {
+        m_PhysicsData.m_eShape = PhysicsData::Shape::Circle;
+        m_PhysicsData.m_fRadius = radius;
+    }
 
-	void addIgnoredEntity(Entity* entity) {
-		m_PhysicsData.m_IgnoredEntities.push_back(entity);
-	}
+    void setRectanglePhysics(float width, float height) {
+        m_PhysicsData.m_eShape = PhysicsData::Shape::Rectangle;
+        m_PhysicsData.m_fWidth = width;
+        m_PhysicsData.m_fHeight = height;
+    }
 
-	bool shouldIgnoreEntityForPhysics(Entity* entity) const {
-		for (const auto& ignoredEntity : m_PhysicsData.m_IgnoredEntities) {
-			if (ignoredEntity == entity) {
-				return true;
-			}
-		}
+    void addIgnoredEntity(Entity* entity) {
+        m_PhysicsData.m_IgnoredEntities.push_back(entity);
+    }
 
-		if (entity -> GetPhysicsData().IsInAnyLayer(m_PhysicsData.getLayersToIgnore())) {
-			return true;
-		}
-		return false;
-	}
+    bool shouldIgnoreEntityForPhysics(Entity* entity) const {
+        for (const auto& ignoredEntity : m_PhysicsData.m_IgnoredEntities) {
+            if (ignoredEntity == entity) {
+                return true;
+            }
+        }
 
-	void SetVelocity(const sf::Vector2f& velocity) {
-		m_PhysicsData.m_vVelocity = velocity;
-	}
+        if (entity->GetPhysicsData().IsInAnyLayer(m_PhysicsData.getLayersToIgnore())) {
+            return true;
+        }
+        return false;
+    }
 
-	void SetTexture(const sf::Texture& texture) {
-		m_Sprite.setTexture(texture);
-	}
+    void SetVelocity(const sf::Vector2f& velocity) {
+        m_PhysicsData.m_vVelocity = velocity;
+    }
 
-	void SetScale(const sf::Vector2f& scale) {
-		m_Sprite.setScale(scale);
-	}
+    sf::Vector2f GetVelocity() const {
+        return m_PhysicsData.m_vVelocity;
+    }
 
-	void SetOrigin(const sf::Vector2f& origin) {
-		m_Sprite.setOrigin(origin);
-	}
+    void SetTexture(const sf::Texture& texture) {
+        m_Sprite.setTexture(texture);
+    }
 
-	void SetPosition(const sf::Vector2f& position) {
-		m_Sprite.setPosition(position);
-	}
+    void SetScale(const sf::Vector2f& scale) {
+        m_Sprite.setScale(scale);
+    }
 
-	void SetColor(const sf::Color& color) {
-		m_Sprite.setColor(color);
-	}
+    void SetOrigin(const sf::Vector2f& origin) {
+        m_Sprite.setOrigin(origin);
+    }
 
-	void SetSprite(const sf::Sprite& sprite) {
-		m_Sprite = sprite;
-	}
+    void SetPosition(const sf::Vector2f& position) {
+        m_Sprite.setPosition(position);
+    }
 
-	const sf::Sprite& GetSprite() const {
-		return m_Sprite;
-	}
+    void SetColor(const sf::Color& color) {
+        m_Sprite.setColor(color);
+    }
 
-	sf::Sprite& GetSpriteNonConst() {
-		return m_Sprite;
-	}
+    void SetSprite(const sf::Sprite& sprite) {
+        m_Sprite = sprite;
+    }
 
-	void move(const sf::Vector2f& offset) {
-		m_Sprite.move(offset);
-	}
+    const sf::Sprite& GetSprite() const {
+        return m_Sprite;
+    }
 
-	void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
-		target.draw(m_Sprite, states);
-	}
+    sf::Sprite& GetSpriteNonConst() {
+        return m_Sprite;
+    }
 
-	sf::Vector2f GetPosition() const {
-		return m_Sprite.getPosition();
-	}
+    void move(const sf::Vector2f& offset) {
+        m_Sprite.move(offset);
+    }
 
-	sf::Vector2i GetClosestGridCoordinates() const {
-		return sf::Vector2i(GetPosition().x / 160, GetPosition().y / 160);
-	}
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
+        target.draw(m_Sprite, states);
+    }
 
-	PhysicsData::Type GetPhysicsShapeType() const {
-		return m_PhysicsData.m_eType;
-	}
+    sf::Vector2f GetPosition() const {
+        return m_Sprite.getPosition();
+    }
 
-	const PhysicsData& GetPhysicsData() const {
-		return m_PhysicsData;
-	}
-	
-	PhysicsData& GetPhysicsDataNonConst() {
-		return m_PhysicsData;
-	}
+    sf::Vector2i GetClosestGridCoordinates() const {
+        return sf::Vector2i(GetPosition().x / 64, GetPosition().y / 64);
+    }
 
-	void SetPathIndex(int index) {
-		m_iPathIndex = index;
-	}
+    PhysicsData::Type GetPhysicsShapeType() const {
+        return m_PhysicsData.m_eType;
+    }
 
-	int GetPathIndex() const {
-		return m_iPathIndex;
-	}
+    const PhysicsData& GetPhysicsData() const {
+        return m_PhysicsData;
+    }
 
-	void OnCollision(Entity& pOtherEntity);
+    PhysicsData& GetPhysicsDataNonConst() {
+        return m_PhysicsData;
+    }
 
-	void SetHealth(int health) {
-		m_iHealth = health;
-	}
+    void SetPathIndex(int index) {
+        m_iPathIndex = index;
+    }
 
-	void DealDamage(int damage);
+    int GetPathIndex() const {
+        return m_iPathIndex;
+    }
 
-	bool IsDeletionRequested() const {
-		return m_bDeletionRequested;
-	}
+    void OnCollision(Entity& pOtherEntity);
 
-	int getHealth() const {
-		return m_iHealth;
-	}
+    void SetHealth(int health) {
+        m_iHealth = health;
+    }
 
-	void RequestDeletion() {
-		m_bDeletionRequested = true;
-	}
+    void DealDamage(int damage);
+
+    bool IsDeletionRequested() const {
+        return m_bDeletionRequested;
+    }
+
+    int getHealth() const {
+        return m_iHealth;
+    }
+
+    void RequestDeletion() {
+        m_bDeletionRequested = true;
+    }
+
+    int GetType() const {
+        return m_iType;
+    }
+
+    void SetType(int type) {
+        m_iType = type;
+    }
+
+    int GetGoldReward() const {
+        return m_iGoldReward;
+    }
+
+    void SetGoldReward(int gold) {
+        m_iGoldReward = gold;
+    }
+
+    // Thêm damage functions
+    int GetDamage() const {
+        return m_iDamage;
+    }
+
+    void SetDamage(int damage) {
+        m_iDamage = damage;
+    }
 
 private:
-	sf::Sprite m_Sprite;
-	PhysicsData m_PhysicsData;
-	bool m_bDeletionRequested;
-
-	int m_iPathIndex;
-	int m_iHealth;
+    sf::Sprite m_Sprite;
+    PhysicsData m_PhysicsData;
+    bool m_bDeletionRequested;
+    int m_iPathIndex;
+    int m_iHealth;
+    int m_iType; // For tower/enemy type (1-4)
+    int m_iGoldReward; // Gold reward for killing enemies
+    int m_iDamage; // Damage amount for projectiles
 public:
-	float m_fAxeTimer;
-	float m_fAttackTimer;
+    float m_fAxeTimer;
+    float m_fAttackTimer;
 };
 
-#endif; 
+#endif;

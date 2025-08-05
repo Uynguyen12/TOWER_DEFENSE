@@ -1,0 +1,16 @@
+{
+    "profiles": [
+        {
+            "experience": 0,
+            "highScore": 0,
+            "level": 1,
+            "name": "uynguyen",
+            "savedDifficulty": 1.0,
+            "savedEnemyPath": [],
+            "savedGold": 10,
+            "savedLevel": 1,
+            "savedMapLayout": [],
+            "savedTowers": []
+        }
+    ]
+}
