@@ -1,6 +1,8 @@
 ﻿#include "game.h"
 #include <SFML/Graphics.hpp>
 #include "MathHelpers.h"
+#include <sstream>
+#include <iomanip>
 #include <random>
 #include <stdexcept>
 #include <algorithm>
@@ -298,65 +300,65 @@ void Game::InitializeBulletSystem() {
 void Game::InitializeDifficulty(Difficulty difficulty) {
     switch (difficulty) {
     case Easy:
-        m_EnemyConfigs[0] = { 30, 10, 1, 1.8f, 1, m_EnemyConfigs[0].texture }; // Enemy 1: 1 damage to base
-        m_EnemyConfigs[1] = { 25, 20, 2, 1.6f, 2, m_EnemyConfigs[1].texture }; // Enemy 2: 2 damage to base
-        m_EnemyConfigs[2] = { 15, 40, 3, 1.3f, 3, m_EnemyConfigs[2].texture }; // Enemy 3: 3 damage to base
-        m_EnemyConfigs[3] = { 10, 60, 4, 1.0f, 5, m_EnemyConfigs[3].texture }; // Enemy 4: 5 damage to base
-        m_TowerConfigs[0] = { 5, 3, 5, 384.0f, m_TowerConfigs[0].texture };
-        m_TowerConfigs[1] = { 5, 7, 10, 320.0f, m_TowerConfigs[1].texture };
-        m_TowerConfigs[2] = { 4, 11, 15, 256.0f, m_TowerConfigs[2].texture };
-        m_TowerConfigs[3] = { 3, 15, 20, 192.0f, m_TowerConfigs[3].texture };
+        m_EnemyConfigs[0] = { 30, 15, 1, 1.8f, 1, m_EnemyConfigs[0].texture }; //count - health - goldReward - speed - damageToBase
+        m_EnemyConfigs[1] = { 25, 25, 2, 1.6f, 2, m_EnemyConfigs[1].texture }; 
+        m_EnemyConfigs[2] = { 15, 40, 3, 1.3f, 3, m_EnemyConfigs[2].texture }; 
+        m_EnemyConfigs[3] = { 10, 60, 4, 1.0f, 5, m_EnemyConfigs[3].texture }; 
+        m_TowerConfigs[0] = { 4, 5, 6, 384.0f, m_TowerConfigs[0].texture }; //maxCount - cost - damage - range
+        m_TowerConfigs[1] = { 4, 10, 8, 320.0f, m_TowerConfigs[1].texture };
+        m_TowerConfigs[2] = { 3, 15, 10, 256.0f, m_TowerConfigs[2].texture };
+        m_TowerConfigs[3] = { 2, 20, 12, 192.0f, m_TowerConfigs[3].texture };
         for (int i = 0; i < 4; i++) {
             m_TowerCosts[i] = m_TowerConfigs[i].cost;
         }
 
-        m_iStartingGold = 32;
+        m_iStartingGold = 30;
         m_fGoldPerSecond = 1.1f; // 1.25 gold per second for Easy
         break;
     case Medium:
-        m_EnemyConfigs[0] = { 45, 20, 2, 2.0f, 2, m_EnemyConfigs[0].texture }; // Enemy 1: 2 damage to base
-        m_EnemyConfigs[1] = { 35, 40, 2, 1.8f, 3, m_EnemyConfigs[1].texture }; // Enemy 2: 3 damage to base
-        m_EnemyConfigs[2] = { 25, 80, 4, 1.5f, 5, m_EnemyConfigs[2].texture }; // Enemy 3: 5 damage to base
-        m_EnemyConfigs[3] = { 15, 100, 5, 1.2f, 8, m_EnemyConfigs[3].texture }; // Enemy 4: 8 damage to base
-        m_TowerConfigs[0] = { 6, 4, 6, 384.0f, m_TowerConfigs[0].texture };
-        m_TowerConfigs[1] = { 5, 9, 10, 320.0f, m_TowerConfigs[1].texture };
-        m_TowerConfigs[2] = { 4, 14, 15, 256.0f, m_TowerConfigs[2].texture };
-        m_TowerConfigs[3] = { 3, 19, 22, 192.0f, m_TowerConfigs[3].texture };
+        m_EnemyConfigs[0] = { 45, 35, 2, 2.0f, 2, m_EnemyConfigs[0].texture }; //count - health - goldReward - speed - damageToBase
+        m_EnemyConfigs[1] = { 35, 45, 2, 1.8f, 3, m_EnemyConfigs[1].texture }; 
+        m_EnemyConfigs[2] = { 25, 80, 4, 1.5f, 5, m_EnemyConfigs[2].texture }; 
+        m_EnemyConfigs[3] = { 15, 100, 5, 1.2f, 8, m_EnemyConfigs[3].texture }; 
+        m_TowerConfigs[0] = { 5, 8, 9, 400.0f, m_TowerConfigs[0].texture }; //maxCount - cost - damage - range
+        m_TowerConfigs[1] = { 5, 15, 11, 330.0f, m_TowerConfigs[1].texture };
+        m_TowerConfigs[2] = { 3, 20, 13, 260.0f, m_TowerConfigs[2].texture };
+        m_TowerConfigs[3] = { 2, 25, 15, 210.0f, m_TowerConfigs[3].texture };
         for (int i = 0; i < 4; i++) {
             m_TowerCosts[i] = m_TowerConfigs[i].cost;
         }
-        m_iStartingGold = 38;
+        m_iStartingGold = 40;
         m_fGoldPerSecond = 1.2f; // 5 gold per second for Medium
         break;
     case Hard:
-        m_EnemyConfigs[0] = { 60, 30, 2, 2.2f, 3, m_EnemyConfigs[0].texture }; // Enemy 1: 3 damage to base
-        m_EnemyConfigs[1] = { 45, 60, 3, 2.0f, 5, m_EnemyConfigs[1].texture }; // Enemy 2: 5 damage to base
-        m_EnemyConfigs[2] = { 35, 100, 5, 1.7f, 8, m_EnemyConfigs[2].texture }; // Enemy 3: 8 damage to base
-        m_EnemyConfigs[3] = { 20, 130, 6, 1.4f, 12, m_EnemyConfigs[3].texture }; // Enemy 4: 12 damage to base
-        m_TowerConfigs[0] = { 6, 5, 7, 384.0f, m_TowerConfigs[0].texture };
-        m_TowerConfigs[1] = { 6, 11, 14, 320.0f, m_TowerConfigs[1].texture };
-        m_TowerConfigs[2] = { 5, 17, 21, 256.0f, m_TowerConfigs[2].texture };
-        m_TowerConfigs[3] = { 4, 23, 28, 192.0f, m_TowerConfigs[3].texture };
+        m_EnemyConfigs[0] = { 55, 45, 2, 2.2f, 3, m_EnemyConfigs[0].texture };  //count - health - goldReward - speed - damageToBase
+        m_EnemyConfigs[1] = { 45, 55, 3, 2.0f, 5, m_EnemyConfigs[1].texture }; 
+        m_EnemyConfigs[2] = { 30, 90, 5, 1.7f, 8, m_EnemyConfigs[2].texture }; 
+        m_EnemyConfigs[3] = { 30, 120, 6, 1.4f, 12, m_EnemyConfigs[3].texture }; 
+        m_TowerConfigs[0] = { 6, 13, 12, 400.0f, m_TowerConfigs[0].texture }; //maxCount - cost - damage - range
+        m_TowerConfigs[1] = { 5, 20, 14, 350.0f, m_TowerConfigs[1].texture };
+        m_TowerConfigs[2] = { 4, 25, 18, 270.0f, m_TowerConfigs[2].texture };
+        m_TowerConfigs[3] = { 3, 30, 23, 230.0f, m_TowerConfigs[3].texture };
         for (int i = 0; i < 4; i++) {
             m_TowerCosts[i] = m_TowerConfigs[i].cost;
         }
-        m_iStartingGold = 46;
-        m_fGoldPerSecond = 1.3f; // 10 gold per second for Hard
+        m_iStartingGold = 50;
+        m_fGoldPerSecond = 1.4f; // 10 gold per second for Hard
         break;
     case Extremely:
-        m_EnemyConfigs[0] = { 75, 40, 3, 2.5f, 5, m_EnemyConfigs[0].texture }; // Enemy 1: 5 damage to base
-        m_EnemyConfigs[1] = { 55, 60, 3, 2.2f, 8, m_EnemyConfigs[1].texture }; // Enemy 2: 8 damage to base
-        m_EnemyConfigs[2] = { 40, 130, 6, 1.9f, 12, m_EnemyConfigs[2].texture }; // Enemy 3: 12 damage to base
-        m_EnemyConfigs[3] = { 30, 175, 7, 1.6f, 20, m_EnemyConfigs[3].texture }; // Enemy 4: 20 damage to base
-        m_TowerConfigs[0] = { 6, 6, 8, 384.0f, m_TowerConfigs[0].texture };
-        m_TowerConfigs[1] = { 6, 13, 16, 320.0f, m_TowerConfigs[1].texture };
-        m_TowerConfigs[2] = { 5, 20, 24, 256.0f, m_TowerConfigs[2].texture };
-        m_TowerConfigs[3] = { 5, 27, 40, 192.0f, m_TowerConfigs[3].texture };
+        m_EnemyConfigs[0] = { 65, 45, 3, 2.5f, 5, m_EnemyConfigs[0].texture }; //count - health - goldReward - speed - damageToBase
+        m_EnemyConfigs[1] = { 45, 60, 3, 2.2f, 8, m_EnemyConfigs[1].texture }; 
+        m_EnemyConfigs[2] = { 45, 130, 6, 1.9f, 12, m_EnemyConfigs[2].texture }; 
+        m_EnemyConfigs[3] = { 45, 175, 7, 1.6f, 20, m_EnemyConfigs[3].texture }; 
+        m_TowerConfigs[0] = { 6, 20, 15, 400.0f, m_TowerConfigs[0].texture }; //maxCount - cost - damage - range
+        m_TowerConfigs[1] = { 6, 25, 17, 350.0f, m_TowerConfigs[1].texture };
+        m_TowerConfigs[2] = { 4, 40, 25, 270.0f, m_TowerConfigs[2].texture };
+        m_TowerConfigs[3] = { 3, 50, 30, 250.0f, m_TowerConfigs[3].texture };
         for (int i = 0; i < 4; i++) {
             m_TowerCosts[i] = m_TowerConfigs[i].cost;
         }
-        m_iStartingGold = 54;
-        m_fGoldPerSecond = 1.4f; // 20 gold per second for VeryHard
+        m_iStartingGold = 60;
+        m_fGoldPerSecond = 1.5f; // 20 gold per second for VeryHard
         break;
     }
 
@@ -787,7 +789,28 @@ void Game::UpdateTower() {
         float speedMultiplier = 1.0f + towerType * 0.5f;
 
         vTowerToEnemy = MathHelpers::normalize(vTowerToEnemy);
-        float baseSpeed = 200.0f;
+
+        float baseSpeed = 0.0f;
+
+        switch (m_eDifficulty)
+        {
+        case Easy:
+            baseSpeed = 200.0f;
+            break;
+        case Medium:
+            baseSpeed = 250.0f;
+            break;
+        case Hard:
+            baseSpeed = 300.0f;
+            break;
+        case Extremely:
+            baseSpeed = 375.0f;
+            break;
+        default:
+            baseSpeed = 200.0f;
+            break;
+        }
+        
         float finalSpeed = baseSpeed * speedMultiplier;
         newProjectile.SetVelocity(vTowerToEnemy * finalSpeed);
 
@@ -1769,6 +1792,9 @@ void Game::UpdatePlayerText() {
         totalEnemiesRemaining += m_EnemyConfigs[i].count - m_killedEnemies[i];
     }
 
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << m_fGoldPerSecond;
+
     sf::Vector2u windowSize = m_Window.getSize();
 
     switch (m_iCurrentMap) {
@@ -1835,7 +1861,7 @@ void Game::UpdatePlayerText() {
     m_PlayerText.setString("Difficulty: " + difficultyStr +
         "\nPlayer's Gold: " + std::to_string(m_iPlayerGold) +
         "\nPlayer's Health: " + std::to_string(m_iPlayerHealth) +
-        "\nGold Per Second: " + std::to_string(static_cast<int>(m_fGoldPerSecond)) +
+        "\nGold Per Second: " + ss.str() +
         "\nEnemies Remaining: " + std::to_string(totalEnemiesRemaining));
 }
 
@@ -1912,7 +1938,6 @@ void Game::ResetGameState() {
     m_iGoldGainedThisUpdate = 0;
     m_fTimeInPlayMode = 0.0f;
     m_fDifficulty = 1.0f;
-    m_fGoldPerSecond = 0.0f;
     m_fGoldPerSecondTimer = 0.0f;
     m_bGameRunning = true;
     m_bGameOverSoundPlayed = false;
