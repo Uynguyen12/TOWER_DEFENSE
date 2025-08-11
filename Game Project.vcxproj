@@ -26,13 +26,18 @@
   <ItemGroup>
     <ClCompile Include="DamageTextManager.cpp" />
     <ClCompile Include="Entity.cpp" />
-    <ClCompile Include="game.cpp" />
+    <ClCompile Include="game.cpp">
+      <DeploymentContent>true</DeploymentContent>
+    </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="MapGrid.cpp" />
     <ClCompile Include="MenuManager.cpp" />
     <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="TileOptions.cpp" />
+    <ClCompile Include="TitleScreen.cpp" />
+    <ClCompile Include="TowerSelectionPanel.cpp" />
+    <ClCompile Include="UIManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DamageTextManager.h" />
@@ -44,6 +49,9 @@
     <ClInclude Include="MenuManager.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="TileOptions.h" />
+    <ClInclude Include="TitleScreen.h" />
+    <ClInclude Include="TowerSelectionPanel.h" />
+    <ClInclude Include="UIManager.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

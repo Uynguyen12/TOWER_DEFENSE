@@ -1,7 +1,7 @@
 ﻿#include "TileOptions.h"
 
 // Initialize static member constant outside the class
-const float TileOptions::SIZE = 80.0f;
+const float TileOptions::SIZE = 64.0f;
 
 // Constructor: only receives tile type
 TileOptions::TileOptions(TileType type)

@@ -39,6 +39,12 @@ void SoundManager::Initialize() {
     if (!m_GameOverSoundBuffer.loadFromFile("sound/gameover.wav")) {
         std::cout << "Warning: Could not load game over sound from 'sound/gameover.wav'" << std::endl;
     }
+    if (!m_GameWonSoundBuffer1.loadFromFile("sound/gamewon1.wav")) {
+        std::cout << "Warning: Could not load game over sound from 'sound/gamewon1.wav'" << std::endl;
+    }
+    if (!m_GameWonSoundBuffer2.loadFromFile("sound/gamewon2.wav")) {
+        std::cout << "Warning: Could not load game over sound from 'sound/gamewon2.wav'" << std::endl;
+    }
     if (!m_ambientWindBuffer.loadFromFile("sound/ambient_wind.wav")) {
         std::cout << "Warning: Could not load ambient wind sound from 'sound/ambient_wind.wav'" << std::endl;
     }
@@ -56,9 +62,18 @@ void SoundManager::Initialize() {
     m_TowerPlaceSound.setBuffer(m_TowerPlaceSoundBuffer);
     m_TowerPlaceSound.setVolume(m_fSoundVolume);
 
+    m_GameOverSound.setLoop(true);
     m_GameOverSound.setBuffer(m_GameOverSoundBuffer);
     m_GameOverSound.setVolume(m_fSoundVolume);
 
+    m_GameWonSound1.setLoop(true);
+    m_GameWonSound1.setBuffer(m_GameWonSoundBuffer1);
+    m_GameWonSound1.setVolume(m_fSoundVolume);
+
+    m_GameWonSound2.setLoop(true);
+    m_GameWonSound2.setBuffer(m_GameWonSoundBuffer2);
+    m_GameWonSound2.setVolume(m_fSoundVolume);
+    
     m_ambientWindSound.setBuffer(m_ambientWindBuffer);
     m_ambientWindSound.setVolume(m_fSoundVolume);
     m_ambientWindSound.setLoop(true); // Ambient sounds typically loop
@@ -177,6 +192,36 @@ void SoundManager::PlayGameOverSound() {
     m_GameOverSound.play();
 }
 
+void SoundManager::StopGameOverSound() {    
+    m_GameOverSound.stop();
+}
+
+void SoundManager::PlayRandomGameWonSound() {
+    StopAmbientSounds();
+    m_GameWonSound1.stop();
+    m_GameWonSound2.stop();
+    int random = rand() % 2;
+    switch (random) {
+    case 0:
+        m_GameWonSound1.play();
+        break;
+    case 1:
+        m_GameWonSound2.play();
+        break;
+    }
+}
+
+void SoundManager::PlayGameWonSound() {
+    m_GameWonSound2.play();
+}
+
+void SoundManager::StopGameWonSound() {
+    m_GameWonSound1.stop();
+    m_GameWonSound2.stop();     
+}
+
+
+
 void SoundManager::PlayWindSound() {
     if (m_ambientWindSound.getStatus() != sf::Sound::Playing) {
         m_ambientWindSound.play();
@@ -216,6 +261,7 @@ void SoundManager::PlayRandomAmbientSound() {
         break;
     }
 }
+
 void SoundManager::UpdateAmbientSound() {
     if (m_ambientTimer.getElapsedTime().asSeconds() >= m_nextAmbientInterval) {
         PlayRandomAmbientSound(); // Dừng âm cũ, phát âm mới
@@ -252,6 +298,8 @@ void SoundManager::SetSoundVolume(float volume) {
 
     m_TowerPlaceSound.setVolume(m_fSoundVolume);
     m_GameOverSound.setVolume(m_fSoundVolume);
+    m_GameWonSound1.setVolume(m_fSoundVolume);
+    m_GameWonSound2.setVolume(m_fSoundVolume);
     m_ambientWindSound.setVolume(m_fSoundVolume);
     m_ambientFireSound.setVolume(m_fSoundVolume);
     m_dragonRoarSound.setVolume(m_fSoundVolume);
@@ -275,6 +323,8 @@ void SoundManager::Cleanup() {
 
     m_TowerPlaceSound.stop();
     m_GameOverSound.stop();
+    m_GameWonSound1.stop();
+    m_GameWonSound2.stop();
     m_ambientWindSound.stop();
     m_ambientFireSound.stop();
     m_dragonRoarSound.stop();

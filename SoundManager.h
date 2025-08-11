@@ -28,6 +28,10 @@ public:
     void PlayEnemyDeathSound();
     void PlayTowerPlaceSound();
     void PlayGameOverSound();
+    void PlayRandomGameWonSound();
+    void PlayGameWonSound();
+    void StopGameOverSound();
+    void StopGameWonSound();
     void PlayWindSound();
     void PlayFireSound();
     void PlayDragonRoarSound();
@@ -56,6 +60,8 @@ private:
     sf::SoundBuffer m_EnemyDeathSoundBuffer;
     sf::SoundBuffer m_TowerPlaceSoundBuffer;
     sf::SoundBuffer m_GameOverSoundBuffer;
+    sf::SoundBuffer m_GameWonSoundBuffer1;
+    sf::SoundBuffer m_GameWonSoundBuffer2;
     sf::SoundBuffer m_ambientWindBuffer; // Added for ambient wind sound
     sf::SoundBuffer m_ambientFireBuffer; // Added for ambient fire sound
     sf::SoundBuffer m_dragonRoarBuffer; // Added for dragon roar sound
@@ -69,6 +75,8 @@ private:
     std::vector<sf::Sound> m_EnemyDeathSounds;
     sf::Sound m_TowerPlaceSound;
     sf::Sound m_GameOverSound;
+    sf::Sound m_GameWonSound1;
+    sf::Sound m_GameWonSound2;
 
     // Settings
     float m_fMusicVolume;

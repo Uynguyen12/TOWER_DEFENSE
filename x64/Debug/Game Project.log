@@ -1,0 +1,18 @@
+﻿  SoundManager.cpp
+  game.cpp
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\MathHelpers.h(37,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  (compiling source file 'game.cpp')
+  
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\MathHelpers.h(40,22): warning C4305: '+=': truncation from 'const double' to 'float'
+  (compiling source file 'game.cpp')
+  
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\DamageTextManager.h(5,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+  (compiling source file 'game.cpp')
+  
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\game.cpp(510,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\game.cpp(579,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\game.cpp(915,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\game.cpp(922,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\game.cpp(1794,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  Generating Code...
+  Game Project.vcxproj -> C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\x64\Debug\Game Project.exe

@@ -5,6 +5,7 @@
 #include <string>
 #include "Entity.h"
 #include <functional>
+#include "UIManager.h"
 
 class MenuManager {
 public:
@@ -15,7 +16,10 @@ public:
         MainMenu,
         PlayMenu,
         GamePlay,
+        DifficultyMenu,
         PauseMenu,
+        GameOver,
+        GameWon,
         Settings,
         MusicSettings,
         ConfigSettings,
@@ -25,6 +29,13 @@ public:
         Normal,
         Hovered,
         Pressed
+    };
+
+    enum class Difficulty {
+        Easy,
+        Medium,
+        Hard,
+        Extremely
     };
 
     enum class SettingsTab {
@@ -114,25 +125,108 @@ public:
 
     struct PlayerProfile {
         std::string name;
-        int level = 1;
-        int experience = 0;
-        int highScore = 0;
+        int map = 1;
+        Difficulty difficulty = Difficulty::Easy;
+        bool won = false;
         int savedLevel = 1;
-        float savedDifficulty = 1.0f;
         int savedGold = 10;
         int currentLevel = 1;
 
-        std::vector<TowerData> savedTowers;
-        std::vector<std::vector<int>> savedMapLayout;
-        std::vector<PathPoint> savedEnemyPath;
+        // Game state data for each map and difficulty combination
+        struct GameStateData {
+            std::vector<TowerData> savedTowers;
+            std::vector<std::vector<int>> savedMapLayout;
+            std::vector<PathPoint> savedEnemyPath;
+            int playerHealth = 100;
+            float timeInPlayMode = 0.0f;
+            std::vector<int> towerCounts = { 0, 0, 0, 0 };
+            std::vector<int> spawnedEnemies = { 0, 0, 0, 0 };
+            std::vector<int> killedEnemies = { 0, 0, 0, 0 };
+            int savedGoldForState = 10;
+        };
+
+        // Save states for each map (1-4) and each difficulty (0-3)
+        GameStateData gameStates[4][4]; // [mapIndex][difficultyIndex]
+
+        struct CompletionData {
+            bool easy = false;
+            bool medium = false;
+            bool hard = false;
+            bool extremely = false;
+        };
+        std::vector<CompletionData> mapCompletions = std::vector<CompletionData>(4);
 
         PlayerProfile() = default;
-        PlayerProfile(const std::string& playerName) : name(playerName) {}
+        PlayerProfile(const std::string& playerName) : name(playerName) {
+            mapCompletions.resize(4);
+            // Initialize all game states
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    gameStates[i][j] = GameStateData();
+                }
+            }
+        }
+
+        // Get game state for specific map and difficulty
+        GameStateData& GetGameState(int mapNumber, Difficulty diff) {
+            int mapIndex = mapNumber - 1; // Convert to 0-based index
+            int diffIndex = static_cast<int>(diff);
+            return gameStates[mapIndex][diffIndex];
+        }
+
+        const GameStateData& GetGameState(int mapNumber, Difficulty diff) const {
+            int mapIndex = mapNumber - 1;
+            int diffIndex = static_cast<int>(diff);
+            return gameStates[mapIndex][diffIndex];
+        }
+
+        // Check if there's saved data for specific map and difficulty
+        bool HasSavedData(int mapNumber, Difficulty diff) const {
+            const GameStateData& state = GetGameState(mapNumber, diff);
+            return (state.timeInPlayMode > 0.0f || !state.savedTowers.empty());
+        }
+
+        bool HasCompletedMap(int mapNumber, Difficulty diff) const {
+            if (mapNumber < 1 || mapNumber > 4) return false;
+            const CompletionData& completion = mapCompletions[mapNumber - 1];
+            switch (diff) {
+            case Difficulty::Easy: return completion.easy;
+            case Difficulty::Medium: return completion.medium;
+            case Difficulty::Hard: return completion.hard;
+            case Difficulty::Extremely: return completion.extremely;
+            default: return false;
+            }
+        }
+
+        void SetMapCompleted(int mapNumber, Difficulty diff) {
+            if (mapNumber < 1 || mapNumber > 4) return;
+            CompletionData& completion = mapCompletions[mapNumber - 1];
+            switch (diff) {
+            case Difficulty::Easy: completion.easy = true; break;
+            case Difficulty::Medium: completion.medium = true; break;
+            case Difficulty::Hard: completion.hard = true; break;
+            case Difficulty::Extremely: completion.extremely = true; break;
+            }
+            won = true;
+        }
+
+        int GetTotalCompletions() const {
+            int total = 0;
+            for (const auto& completion : mapCompletions) {
+                if (completion.easy) total++;
+                if (completion.medium) total++;
+                if (completion.hard) total++;
+                if (completion.extremely) total++;
+            }
+            return total;
+        }
     };
 
 public:
     MenuManager();
     ~MenuManager();
+    
+    void SetCurrentMapAndDifficulty(int map, Difficulty difficulty);
 
     void Initialize(sf::RenderWindow& window);
     void Update(sf::RenderWindow& window, float deltaTime);
@@ -142,8 +236,19 @@ public:
     void DrawPauseMenu(sf::RenderWindow& window);
     void TogglePauseMenu();
     void CreatePauseMenu();
-    bool IsGamePaused() const;
 
+    void DrawGameOverMenu(sf::RenderWindow& window);
+    void ShowGameOverMenu();
+    void CreateGameOverMenu();
+    
+    void DrawGameWonMenu(sf::RenderWindow& window);
+    void ShowGameWonMenu();
+    void CreateGameWonMenu();
+
+    bool IsGamePaused() const;
+    bool IsGameOver() const;
+    bool IsGameWon() const;
+    
     // Menu state management
     void SetMenuState(MenuState newState);
     MenuState GetMenuState() const { return m_currentState; }
@@ -153,12 +258,17 @@ public:
     void CreateNewProfile(const std::string& name);
     void SelectProfile(int index);
     void DeleteProfile(int index);
+    bool IsGuestProfile();
+    void DeleteGuestProfile();
     const PlayerProfile* GetCurrentProfile() const { return m_currentProfile; }
     const std::vector<PlayerProfile>& GetProfiles() const { return m_profiles; }
 
     // Profile save/load functions
     void SaveProfilesToFile();
     void LoadProfilesFromFile();
+    bool HasCompletedMap(int mapNumber, Difficulty difficulty) const;
+    void SetMapCompleted(int mapNumber, Difficulty difficulty) const;
+    int GetTotalCompletions() const;
     void ApplyResolution(sf::RenderWindow& window);
 
     // Settings management
@@ -172,8 +282,12 @@ public:
     void HandleTextInput(sf::Uint32 unicode);
     void ClearInputText();
     void SetExitCallback(std::function<void(sf::RenderWindow&)> callback) { m_exitCallback = callback; }
-    void SetStartGameCallback(std::function<void(int)> callback);
+    void SetStartGameCallback(std::function<void(int, Difficulty)> callback);
     void SetResolutionChangeCallback(std::function<void(sf::Vector2u)> callback) { m_resolutionChangeCallback = callback; }
+
+    //Save game
+    void SetSaveGameCallback(std::function<void()> callback) { m_saveGameCallback = callback; }
+    void SetClearGameDataCallback(std::function<void()> callback) { m_clearGameDataCallback = callback; }
 
     // Audio callbacks
     void SetMusicVolumeCallback(std::function<void(float)> callback) { m_musicVolumeCallback = callback; }
@@ -187,6 +301,7 @@ private:
     void CreateNewProfileMenu();
     void CreateMainMenu();
     void CreatePlayMenu();
+    void CreateDifficultyMenu();
     void CreateSettingsMenu();
     void CreateSettingsContent();
     void CreateTabButton(const std::string& text, sf::Vector2f position,
@@ -213,6 +328,15 @@ private:
     void CreateDeleteButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
         std::function<void(sf::RenderWindow&)> callback);
     void CreatePauseButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback,
+        ButtonStyle style = ButtonStyle::WoodPlank,
+        ButtonIcon icon = ButtonIcon::None, bool isDeleteButton = false);
+
+    void CreateGameOverButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+        std::function<void(sf::RenderWindow&)> callback,
+        ButtonStyle style = ButtonStyle::WoodPlank,
+        ButtonIcon icon = ButtonIcon::None, bool isDeleteButton = false);
+    void CreateGameWonButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
         std::function<void(sf::RenderWindow&)> callback,
         ButtonStyle style = ButtonStyle::WoodPlank,
         ButtonIcon icon = ButtonIcon::None, bool isDeleteButton = false);
@@ -318,9 +442,14 @@ private:
     sf::Texture m_iconRestartTexture;
    
 
+    // Current level for difficulty selection
+    Difficulty m_currentDifficulty = Difficulty::Easy;
+
     // UI Elements
     std::vector<Button> m_buttons;
     std::vector<Button> m_pauseButtons;
+    std::vector<Button> m_gameOverButtons;
+    std::vector<Button> m_gameWonButtons;
     std::vector<Slider> m_sliders;
     sf::Text m_titleText;
     sf::Text m_warningText;
@@ -332,6 +461,8 @@ private:
     sf::Text m_titleShadow;
     sf::RectangleShape m_inputBoxGlow;
     sf::RectangleShape m_backgroundOverlay;
+    sf::RectangleShape m_gameOverBackground;
+    sf::RectangleShape m_gameWonBackground;
 
     // Animation elements
     sf::Clock m_pauseGlowClock;
@@ -350,11 +481,18 @@ private:
     bool m_showWarning;
     float m_warningTimer;
     bool m_gamePaused;
-    int m_currentLevel;
+    bool m_gameOver;
+    bool m_gameWon;
+    int m_currentMap;
     bool m_ambientSoundsPlaying;
+    bool m_gameOverSoundPlaying;
+    bool m_gameWonSoundPlaying;
 
     float m_resolutionScrollOffset;
     float m_maxResolutionScroll;
+
+    //Guest profile
+    bool m_guestProfile;
 
     // Decorative corner elements
     std::vector<sf::Sprite> m_dragonSprites;
@@ -375,11 +513,15 @@ private:
 
     // Callback functions
     std::function<void(sf::RenderWindow&)> m_exitCallback;
-    std::function<void(int)> m_startGameCallback;
+    std::function<void(int, Difficulty)> m_startGameCallback;
     std::function<void(sf::Vector2u)> m_resolutionChangeCallback;
     std::function<void(float)> m_musicVolumeCallback;
     std::function<void(float)> m_backgroundMusicVolumeCallback;
     std::function<void(float)> m_sfxVolumeCallback;
+
+    //Save game
+    std::function<void()> m_saveGameCallback;
+    std::function<void()> m_clearGameDataCallback;
 
     // UI State
     sf::Vector2f m_windowSize;
@@ -428,4 +570,6 @@ private:
     Button m_resolutionButton;
     std::vector<Button> m_resolutionDropdownButtons;
     bool m_resolutionDropdownOpen;
+
+    
 };

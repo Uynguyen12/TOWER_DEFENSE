@@ -55,11 +55,14 @@ MenuManager::MenuManager()
     : m_currentState(MenuState::ProfileMenu)
     , m_previousState(MenuState::ProfileMenu)
     , m_currentProfile(nullptr)
+    , m_guestProfile(false)
     , m_waitingForNameInput(false)
     , m_showWarning(false)
     , m_warningTimer(0.0f)
     , m_gamePaused(false)
-    , m_currentLevel(1)
+    , m_gameOver(false)
+    , m_gameWon(false)
+    , m_currentMap(0)
     , m_selectedResolutionIndex(0)
     , m_resolutionDropdownOpen(false)
     , m_resolutionScrollOffset(0.0f)
@@ -88,7 +91,6 @@ MenuManager::MenuManager()
 
 
 MenuManager::~MenuManager() {
-    SaveProfilesToFile();
 }
 
 void MenuManager::Initialize(sf::RenderWindow& window) {
@@ -99,7 +101,11 @@ void MenuManager::Initialize(sf::RenderWindow& window) {
     SetMenuState(MenuState::ProfileMenu);
 
     m_ambientSoundsPlaying = false;
+    m_gameOverSoundPlaying = false;
+    m_gameWonSoundPlaying = false;
     m_gamePaused = false;
+    m_gameOver = false;
+    m_gameWon = false;
 
     // Ensure selected resolution is valid
     bool validResolution = false;
@@ -115,6 +121,11 @@ void MenuManager::Initialize(sf::RenderWindow& window) {
         m_selectedResolutionIndex = 0;
         ApplyResolution(window);
     }
+}
+
+void MenuManager::SetCurrentMapAndDifficulty(int map, Difficulty difficulty) {
+    m_currentMap = map;
+    m_currentDifficulty = difficulty;
 }
 
 void MenuManager::CreateGradientBackground() {
@@ -142,7 +153,7 @@ void MenuManager::LoadResources() {
         std::cerr << "Warning: Could not load font. Using default font." << std::endl;
     }
     //Background
-    if (!m_backgroundTexture.loadFromFile("image/Background.jpg")) {
+    if (!m_backgroundTexture.loadFromFile("image/menu/Background.jpg")) {
         CreateGradientBackground();
     }
     else {
@@ -157,15 +168,15 @@ void MenuManager::LoadResources() {
     }
 
     //Pause menu background
-    if (!m_dragonHeadTexture.loadFromFile("image/dragon_head.png")) {
+    if (!m_dragonHeadTexture.loadFromFile("image/menu/dragon_head.png")) {
         std::cerr << "Warning: Could not load dragon head texture" << std::endl;
     }
 
-    if (!m_warriorTexture.loadFromFile("image/warrior.png")) {
+    if (!m_warriorTexture.loadFromFile("image/menu/warrior.png")) {
         std::cerr << "Warning: Could not load warrior leaves texture" << std::endl;
     }
 
-    if (!m_shieldSwordTexture.loadFromFile("image/shield_sword.png")) {
+    if (!m_shieldSwordTexture.loadFromFile("image/menu/shield_sword.png")) {
         std::cerr << "Warning: Could not load shield sword texture" << std::endl;
     }
 
@@ -209,8 +220,19 @@ void MenuManager::LoadResources() {
     m_pauseBackground.setOutlineThickness(2);
     m_pauseBackground.setOutlineColor(sf::Color(120, 120, 255, 180));
 
+    m_gameOverBackground.setSize(sf::Vector2f(450, 450));
+    m_gameOverBackground.setFillColor(sf::Color(15, 15, 25, 200));
+    m_gameOverBackground.setOutlineThickness(2);
+    m_gameOverBackground.setOutlineColor(sf::Color(120, 120, 255, 180));
+
+    m_gameWonBackground.setSize(sf::Vector2f(450, 450));
+    m_gameWonBackground.setFillColor(sf::Color(15, 15, 25, 200));
+    m_gameWonBackground.setOutlineThickness(2);
+    m_gameWonBackground.setOutlineColor(sf::Color(120, 120, 255, 180));
+
     m_backgroundOverlay.setSize(m_windowSize);
     m_backgroundOverlay.setFillColor(BACKGROUND_OVERLAY_COLOR);
+
 }
 
 void MenuManager::Update(sf::RenderWindow& window, float deltaTime) {
@@ -1299,18 +1321,22 @@ void MenuManager::DrawMedievalScrollIndicators(sf::RenderWindow& window) {
 }
 
 void MenuManager::Draw(sf::RenderWindow& window) {
-    if (m_backgroundTexture.getSize().x > 0 && !m_gamePaused) {
+    if (m_backgroundTexture.getSize().x > 0 && !m_gamePaused && !m_gameOver && !m_gameWon) {
         window.draw(m_backgroundSprite);
     }
 
-    if (m_currentState != MenuState::GamePlay || !m_gamePaused) {
+    if (m_currentState != MenuState::GamePlay || m_gamePaused || m_gameOver || m_gameWon) {
         window.draw(m_backgroundOverlay);
     }
 
     DrawBackgroundParticles(window);
 
-    window.draw(m_titleShadow);
-    window.draw(m_titleText);
+    if (m_currentState != MenuState::GamePlay || m_gamePaused || m_gameOver || m_gameWon) {
+        window.draw(m_titleShadow);
+        window.draw(m_titleText);
+    }
+
+
 
     if (m_currentState == MenuState::Settings) {
         DrawTabButtons(window);
@@ -1337,9 +1363,24 @@ void MenuManager::Draw(sf::RenderWindow& window) {
         DrawWarningWithBackground(window);
     }
 
+
+    if (m_gameOver && m_currentState == MenuState::GamePlay) {
+        DrawGameOverMenu(window);
+        return;
+    }
+
+    if (m_gameWon && m_currentState == MenuState::GamePlay) {
+        DrawGameWonMenu(window);
+        return;
+    }
+
     if (m_gamePaused && m_currentState == MenuState::GamePlay) {
         DrawPauseMenu(window);
+        return;
     }
+
+
+
 }
 
 void MenuManager::DrawBackgroundParticles(sf::RenderWindow& window) {
@@ -1804,37 +1845,37 @@ void MenuManager::DrawAnimatedCornerDecorations(sf::RenderWindow& window, sf::Ve
     float decorSize = 120.0f;
 
     // **Góc trên trái - Đầu rồng với hiệu ứng thở lửa**
-    if (m_dragonHeadTexture.getSize().x > 0) {
-        sf::Sprite dragonSprite;
-        dragonSprite.setTexture(m_dragonHeadTexture);
+    //if (m_dragonHeadTexture.getSize().x > 0) {
+    //    sf::Sprite dragonSprite;
+    //    dragonSprite.setTexture(m_dragonHeadTexture);
 
-        sf::Vector2u dragonSize = m_dragonHeadTexture.getSize();
-        float dragonScale = decorSize / static_cast<float>(std::max(dragonSize.x, dragonSize.y));
+    //    sf::Vector2u dragonSize = m_dragonHeadTexture.getSize();
+    //    float dragonScale = decorSize / static_cast<float>(std::max(dragonSize.x, dragonSize.y));
 
-        // Subtle breathing animation
-        float breathe = 1.0f + 0.05f * sin(time * 1.2f);
-        dragonSprite.setScale(dragonScale * breathe, dragonScale * breathe);
-        dragonSprite.setPosition(centerPos.x - decorSize / 2, centerPos.y - decorSize / 2);
+    //    // Subtle breathing animation
+    //    float breathe = 1.0f + 0.05f * sin(time * 1.2f);
+    //    dragonSprite.setScale(dragonScale * breathe, dragonScale * breathe);
+    //    dragonSprite.setPosition(centerPos.x - decorSize / 2, centerPos.y - decorSize / 2);
 
-        // Color animation (like glowing eyes)
-        sf::Uint8 intensity = static_cast<sf::Uint8>(200 + 55 * sin(time * 2.5f));
-        dragonSprite.setColor(sf::Color(255, intensity, intensity, 240));
-        window.draw(dragonSprite);
+    //    // Color animation (like glowing eyes)
+    //    sf::Uint8 intensity = static_cast<sf::Uint8>(200 + 55 * sin(time * 2.5f));
+    //    dragonSprite.setColor(sf::Color(255, intensity, intensity, 240));
+    //    window.draw(dragonSprite);
 
         // Fire breath effect
-        if (sin(time * 0.8f) > 0.6f) {
-            for (int i = 0; i < 5; i++) {
-                sf::CircleShape flame(3 + rand() % 5);
-                float flameOffset = i * 8;
-                flame.setPosition(
-                    centerPos.x + flameOffset,
-                    centerPos.y - decorSize / 4 + (rand() % 10 - 5)
-                );
-                sf::Uint8 flameAlpha = 100 + rand() % 100;
-                flame.setFillColor(sf::Color(255, 100 + rand() % 100, 0, flameAlpha));
-                window.draw(flame);
-            }
+    if (sin(time * 0.8f) > 0.6f) {
+        for (int i = 0; i < 5; i++) {
+            sf::CircleShape flame(3 + rand() % 5);
+            float flameOffset = i * 8;
+            flame.setPosition(
+                centerPos.x + flameOffset,
+                centerPos.y - decorSize / 4 + (rand() % 10 - 5)
+            );
+            sf::Uint8 flameAlpha = 100 + rand() % 100;
+            flame.setFillColor(sf::Color(255, 100 + rand() % 100, 0, flameAlpha));
+            window.draw(flame);
         }
+        //}
 
         // Dragon eye glow
         sf::CircleShape eyeGlow(decorSize * 0.1f);
@@ -2002,6 +2043,14 @@ void MenuManager::DrawMagicalTitle(sf::RenderWindow& window, sf::Vector2f center
     sf::Text pauseTitle;
     pauseTitle.setFont(m_font);
     pauseTitle.setString("GAME PAUSED");
+    if (m_gameOver && !m_gamePaused) {
+        pauseTitle.setString("GAME OVER");
+    }
+
+    if (m_gameWon && !m_gamePaused) {
+        pauseTitle.setString("GAME WON");
+    }
+
     pauseTitle.setCharacterSize(42);
     pauseTitle.setFillColor(MEDIEVAL_TEXT_GOLD);
     pauseTitle.setStyle(sf::Text::Bold);
@@ -2167,6 +2216,33 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
         if (event.mouseButton.button == sf::Mouse::Left) {
             sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
 
+            // Handle game over menu buttons if game is over
+            if (m_gameOver && m_currentState == MenuState::GamePlay) {
+                for (auto& button : m_gameOverButtons) {
+                    if (button.isVisible && IsMouseOverButton(button, mousePos)) {
+                        button.state = ButtonState::Pressed;
+                        if (button.callback) {
+                            button.callback(window);
+                        }
+                        return;
+                    }
+                }
+                return;
+            }
+
+            if (m_gameWon && m_currentState == MenuState::GamePlay) {
+                for (auto& button : m_gameWonButtons) {
+                    if (button.isVisible && IsMouseOverButton(button, mousePos)) {
+                        button.state = ButtonState::Pressed;
+                        if (button.callback) {
+                            button.callback(window);
+                        }
+                        return;
+                    }
+                }
+                return;
+            }
+
             if (m_gamePaused && m_currentState == MenuState::GamePlay) {
                 for (auto& button : m_pauseButtons) {
                     if (button.isVisible && IsMouseOverButton(button, mousePos)) {
@@ -2239,6 +2315,7 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
             }
         }
     }
+
 
     // Handle mouse wheel scrolling for resolution dropdown
     if (event.type == sf::Event::MouseWheelScrolled) {
@@ -2325,6 +2402,9 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
                     case MenuState::PlayMenu:
                         SetMenuState(MenuState::MainMenu);
                         break;
+                    case MenuState::DifficultyMenu:
+                        SetMenuState(MenuState::PlayMenu);
+                        break;
                     case MenuState::Settings:
                         if (m_previousState == MenuState::GamePlay) {
                             m_currentState = MenuState::GamePlay; // Đặt lại trạng thái thành GamePlay
@@ -2332,7 +2412,28 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
                             m_buttons.clear(); // Xóa giao diện Settings
                             m_sliders.clear();
                             m_resolutionDropdownButtons.clear();
-                            CreatePauseMenu(); // Tạo lại PauseMenu
+                            if (m_gameOver) {
+                                // Nếu game over, không tạo pause menu
+                                m_buttons.clear();
+                                m_sliders.clear();
+                                m_resolutionDropdownButtons.clear();
+                                CreateGameOverMenu();
+                            }
+                            else if (m_gameWon) {
+                                m_buttons.clear();
+                                m_sliders.clear();
+                                m_resolutionDropdownButtons.clear();
+                                CreateGameWonMenu();
+                            }
+                            else {
+                                // Nếu không game over, tạo pause menu
+                                m_gamePaused = true;
+                                m_buttons.clear();
+                                m_sliders.clear();
+                                m_resolutionDropdownButtons.clear();
+                                CreatePauseMenu();
+                                SaveSettingsToFile();
+                            }
                             if (!m_ambientSoundsPlaying) {
                                 SoundManager::getInstance().PauseBackgroundMusic();
                                 SoundManager::getInstance().StartAmbientSoundCycle();
@@ -2346,8 +2447,9 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
                         }
                         break;
                     case MenuState::GamePlay:
-                        TogglePauseMenu();
-                        break;
+                        if (!m_gameOver || !m_gameWon) {
+                            TogglePauseMenu();
+                        }
                     }
                 }
             }
@@ -2357,9 +2459,17 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
 
 
 void MenuManager::TogglePauseMenu() {
+    if (m_gameOver || m_gameWon) {
+        return;
+    }
+
     m_gamePaused = !m_gamePaused;
 
     if (m_gamePaused) {
+        if (m_saveGameCallback) {
+            m_saveGameCallback();
+        }
+
         CreatePauseMenu();
         m_currentState = MenuState::GamePlay;
         SoundManager::getInstance().PauseBackgroundMusic();
@@ -2391,13 +2501,11 @@ void MenuManager::CreatePauseMenu() {
         (m_windowSize.y - m_pauseBackground.getSize().y) / 2
     );
 
-    //m_pauseBackground.setFillColor(sf::Color(15, 15, 25, 220)); // Tăng độ đục
-    //m_pauseBackground.setOutlineThickness(3); // Tăng độ dày viền
     m_pauseBackground.setOutlineColor(MEDIEVAL_GOLD); // Đổi thành màu vàng medieval
 
     float buttonWidth = 200;
-    float buttonHeight = 50;
-    float buttonSpacing = 70;
+    float buttonHeight = 60;
+    float buttonSpacing = 80;
     float startY = centerPos.y + 80;
 
     CreatePauseButton("Continue",
@@ -2407,17 +2515,21 @@ void MenuManager::CreatePauseMenu() {
             TogglePauseMenu();
         },
         ButtonStyle::Shield,
-        ButtonIcon::Target);
+        ButtonIcon::Sword);
 
     CreatePauseButton("Restart",
         sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
         sf::Vector2f(buttonWidth, buttonHeight),
         [this](sf::RenderWindow&) {
+            if (m_clearGameDataCallback) {
+                m_clearGameDataCallback();
+            }
+
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentMap, m_currentDifficulty);
+            }
             m_gamePaused = false;
             m_pauseButtons.clear();
-            if (m_startGameCallback) {
-                m_startGameCallback(m_currentLevel);
-            }
         },
         ButtonStyle::WoodPlank,
         ButtonIcon::Restart);
@@ -2453,6 +2565,7 @@ void MenuManager::CreatePauseMenu() {
         sf::Vector2f(centerPos.x + (m_pauseBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 4),
         sf::Vector2f(buttonWidth, buttonHeight),
         [this](sf::RenderWindow& window) {
+
             if (m_exitCallback) {
                 m_exitCallback(window);
             }
@@ -2547,6 +2660,18 @@ void MenuManager::SetMenuState(MenuState newState) {
         m_ambientSoundsPlaying = false;
     }
 
+    else if (newState != MenuState::GamePlay && m_gameOverSoundPlaying) {
+        SoundManager::getInstance().StopGameOverSound();
+        SoundManager::getInstance().ResumeBackgroundMusic();
+        m_gameOverSoundPlaying = false;
+    }
+
+    else if (newState != MenuState::GamePlay && m_gameWonSoundPlaying) {
+        SoundManager::getInstance().StopGameWonSound();
+        SoundManager::getInstance().ResumeBackgroundMusic();
+        m_gameWonSoundPlaying = false;
+    }
+
     if (!(newState == MenuState::Settings && m_previousState == MenuState::GamePlay)) {
         m_gamePaused = false;
         m_pauseButtons.clear();
@@ -2568,6 +2693,9 @@ void MenuManager::SetMenuState(MenuState newState) {
     case MenuState::PlayMenu:
         CreatePlayMenu();
         break;
+    case MenuState::DifficultyMenu:
+        CreateDifficultyMenu();
+        break;
     case MenuState::Settings:
         m_currentSettingsTab = SettingsTab::Music;
         CreateSettingsMenu();
@@ -2578,9 +2706,406 @@ void MenuManager::SetMenuState(MenuState newState) {
         if (m_gamePaused) {
             CreatePauseMenu();
         }
+
+        if (m_gameOver) {
+            CreateGameOverMenu();
+        }
+
+        if (m_gameWon) {
+            CreateGameWonMenu();
+        }
         break;
     }
 }
+
+
+void MenuManager::DrawGameOverMenu(sf::RenderWindow& window) {
+    // Vẽ background overlay mờ cho pause menu
+    sf::RectangleShape gameOverlay;
+    gameOverlay.setSize(m_windowSize);
+    gameOverlay.setFillColor(sf::Color(0, 0, 0, 120));
+    window.draw(gameOverlay);
+
+    // Tính toán vị trí trung tâm
+    sf::Vector2f centerPos = sf::Vector2f(
+        (m_windowSize.x - m_gameOverBackground.getSize().x) / 2,
+        (m_windowSize.y - m_gameOverBackground.getSize().y) / 2
+    );
+    sf::Vector2f backgroundSize = m_gameOverBackground.getSize();
+    m_gameOverBackground.setPosition(centerPos);
+
+    // === HIỆU ỨNG KHÓI VÀ BỤI PHÉP THUẬT ===
+    DrawMysticalBackground(window);
+
+
+    // === 1. VẼ SHADOW VÀ HIỆU ỨNG ÁNH SÁNG MA THUẬT ===
+    DrawEnhancedMenuShadow(window, centerPos, backgroundSize);
+
+    // === 2. VẼ BACKGROUND CHÍNH VỚI HIỆU ỨNG CUỘN GIẤY ===
+    DrawScrollParchmentBackground(window, centerPos, backgroundSize);
+
+    // === 3. VẼ KHUNG VIỀN GOTHIC VỚI HOA VĂN ===
+    DrawGothicBorderWithRunes(window, centerPos, backgroundSize);
+
+    // === 4. VẼ CÁC TRANG TRÍ Ở 4 GÓC VỚI ANIMATION ===
+    DrawAnimatedCornerDecorations(window, centerPos, backgroundSize);
+
+    // === 5. VẼ TITLE VỚI HIỆU ỨNG RUNE MA THUẬT ===
+    DrawMagicalTitle(window, centerPos, backgroundSize);
+
+    // === 6. VẼ DECORATIVE BORDER PATTERN VỚI HIỆU ỨNG SÁNG ===
+    DrawEnhancedDecorativeBorder(window, centerPos, backgroundSize);
+
+    // === 7. VẼ PAUSE BUTTONS VỚI HIỆU ỨNG ENHANCED ===
+    for (const auto& button : m_gameOverButtons) {
+        if (button.isVisible) {
+            DrawEnhancedMedievalButton(window, button);
+        }
+    }
+
+    // === 8. VẼ AMBIENT MAGICAL PARTICLES ===
+    DrawEnhancedMagicalParticles(window, centerPos, backgroundSize);
+
+    // === 9. VẼ FLOATING RUNES AROUND MENU ===
+    DrawFloatingRunes(window, centerPos, backgroundSize);
+}
+
+void MenuManager::ShowGameOverMenu() {
+
+    m_gameOver = true;
+    m_gamePaused = false;
+    m_gameWon = false;
+    m_gameOverSoundPlaying = true;
+    m_currentState = MenuState::GamePlay;
+
+    // Xóa tất cả các menu khác
+    m_pauseButtons.clear();
+    m_buttons.clear();
+    m_sliders.clear();
+    m_resolutionDropdownButtons.clear();
+
+    CreateGameOverMenu();
+    std::cout << "Game Over!" << std::endl;
+}
+
+void MenuManager::CreateGameOverMenu() {
+
+    m_pauseButtons.clear();
+    m_gameOverButtons.clear();
+    m_gameWonButtons.clear();
+    m_buttons.clear();
+    m_sliders.clear();
+    m_resolutionDropdownButtons.clear();
+
+    sf::Vector2f centerPos = sf::Vector2f(
+        (m_windowSize.x - m_gameOverBackground.getSize().x) / 2,
+        (m_windowSize.y - m_gameOverBackground.getSize().y) / 2 - 80
+    );
+
+    m_gameOverBackground.setOutlineColor(MEDIEVAL_GOLD); // Đổi thành màu vàng medieval
+
+    float buttonWidth = 220;
+    float buttonHeight = 80;
+    float buttonSpacing = 100;
+    float startY = centerPos.y + 80;
+
+    CreateGameOverButton("Retry",
+        sf::Vector2f(centerPos.x + (m_gameOverBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow&) {
+            m_gameOver = false;
+            m_gameOverButtons.clear();
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentMap, m_currentDifficulty);
+            }
+            std::cout << "Retrying map " << m_currentMap << std::endl;
+        },
+        ButtonStyle::Shield,
+        ButtonIcon::Restart);
+
+    CreateGameOverButton("Main Menu",
+        sf::Vector2f(centerPos.x + (m_gameOverBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow&) {
+            SetMenuState(MenuState::MainMenu);
+            m_gameOver = false;
+            m_gameOverButtons.clear();
+            m_buttons.clear();
+            m_sliders.clear();
+            m_resolutionDropdownButtons.clear();
+            CreateMainMenu();
+            std::cout << "Returning to Main Menu from game over..." << std::endl;
+        },
+        ButtonStyle::Stone,
+        ButtonIcon::Crown);
+
+    CreateGameOverButton("Exit",
+        sf::Vector2f(centerPos.x + (m_gameOverBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 3),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow& window) {
+            m_gameOver = false;
+            m_gameOverButtons.clear();
+
+            if (m_exitCallback) {
+                ;
+                m_exitCallback(window);
+            }
+        },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
+
+    m_gameOverBackground.setPosition(
+        (m_windowSize.x - m_gameOverBackground.getSize().x) / 2,
+        startY - 20
+    );
+    m_gameOverBackground.setOutlineThickness(0);
+}
+
+void MenuManager::CreateGameOverButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+    std::function<void(sf::RenderWindow&)> callback,
+    ButtonStyle style, ButtonIcon icon, bool isDeleteButton) {
+    Button button;
+    button.shape.setPosition(position);
+    button.shape.setSize(size);
+    button.style = style;
+    button.icon = icon;
+    button.isDeleteButton = isDeleteButton;
+
+    // Set base color based on button type
+    if (isDeleteButton) {
+        button.shape.setFillColor(DELETE_BUTTON_COLOR);
+    }
+    else {
+        button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+    }
+
+    button.shape.setOutlineThickness(4);
+    button.shape.setOutlineColor(MEDIEVAL_GOLD);
+
+    button.text.setFont(m_font);
+    button.text.setString(text);
+
+    int fontSize = 22;
+    if (text.length() > 20) {
+        fontSize = 18;
+    }
+    else if (text.length() > 15) {
+        fontSize = 20;
+    }
+    button.text.setCharacterSize(fontSize);
+    button.text.setFillColor(TEXT_COLOR);
+    button.text.setStyle(sf::Text::Bold);
+
+    // Tạo text shadow
+    button.textShadow.setFont(m_font);
+    button.textShadow.setString(text);
+    button.textShadow.setCharacterSize(fontSize);
+    button.textShadow.setFillColor(MEDIEVAL_SHADOW);
+    button.textShadow.setStyle(sf::Text::Bold);
+
+    CenterTextWithShadow(button.text, button.textShadow, button.shape);
+
+    button.callback = callback;
+    button.state = ButtonState::Normal;
+    button.isVisible = true;
+
+    m_gameOverButtons.push_back(button);
+}
+
+
+void MenuManager::DrawGameWonMenu(sf::RenderWindow& window) {
+    // Vẽ background overlay mờ cho pause menu
+    sf::RectangleShape gameWonplay;
+    gameWonplay.setSize(m_windowSize);
+    gameWonplay.setFillColor(sf::Color(0, 0, 0, 120));
+    window.draw(gameWonplay);
+
+    // Tính toán vị trí trung tâm
+    sf::Vector2f centerPos = sf::Vector2f(
+        (m_windowSize.x - m_gameOverBackground.getSize().x) / 2,
+        (m_windowSize.y - m_gameOverBackground.getSize().y) / 2
+    );
+    sf::Vector2f backgroundSize = m_gameWonBackground.getSize();
+    m_gameWonBackground.setPosition(centerPos);
+
+    // === HIỆU ỨNG KHÓI VÀ BỤI PHÉP THUẬT ===
+    DrawMysticalBackground(window);
+
+
+    // === 1. VẼ SHADOW VÀ HIỆU ỨNG ÁNH SÁNG MA THUẬT ===
+    DrawEnhancedMenuShadow(window, centerPos, backgroundSize);
+
+    // === 2. VẼ BACKGROUND CHÍNH VỚI HIỆU ỨNG CUỘN GIẤY ===
+    DrawScrollParchmentBackground(window, centerPos, backgroundSize);
+
+    // === 3. VẼ KHUNG VIỀN GOTHIC VỚI HOA VĂN ===
+    DrawGothicBorderWithRunes(window, centerPos, backgroundSize);
+
+    // === 4. VẼ CÁC TRANG TRÍ Ở 4 GÓC VỚI ANIMATION ===
+    DrawAnimatedCornerDecorations(window, centerPos, backgroundSize);
+
+    // === 5. VẼ TITLE VỚI HIỆU ỨNG RUNE MA THUẬT ===
+    DrawMagicalTitle(window, centerPos, backgroundSize);
+
+    // === 6. VẼ DECORATIVE BORDER PATTERN VỚI HIỆU ỨNG SÁNG ===
+    DrawEnhancedDecorativeBorder(window, centerPos, backgroundSize);
+
+    // === 7. VẼ PAUSE BUTTONS VỚI HIỆU ỨNG ENHANCED ===
+    for (const auto& button : m_gameWonButtons) {
+        if (button.isVisible) {
+            DrawEnhancedMedievalButton(window, button);
+        }
+    }
+
+    // === 8. VẼ AMBIENT MAGICAL PARTICLES ===
+    DrawEnhancedMagicalParticles(window, centerPos, backgroundSize);
+
+    // === 9. VẼ FLOATING RUNES AROUND MENU ===
+    DrawFloatingRunes(window, centerPos, backgroundSize);
+}
+
+void MenuManager::ShowGameWonMenu() {
+
+    m_gameOver = false;
+    m_gamePaused = false;
+    m_gameWon = true;
+    m_gameWonSoundPlaying = true;
+    m_currentState = MenuState::GamePlay;
+
+    // Xóa tất cả các menu khác
+    m_pauseButtons.clear();
+    m_buttons.clear();
+    m_sliders.clear();
+    m_resolutionDropdownButtons.clear();
+
+    CreateGameWonMenu();
+    std::cout << "Game Won!" << std::endl;
+}
+
+void MenuManager::CreateGameWonMenu() {
+
+    m_pauseButtons.clear();
+    m_gameOverButtons.clear();
+    m_gameWonButtons.clear();
+    m_buttons.clear();
+    m_sliders.clear();
+    m_resolutionDropdownButtons.clear();
+
+    sf::Vector2f centerPos = sf::Vector2f(
+        (m_windowSize.x - m_gameWonBackground.getSize().x) / 2,
+        (m_windowSize.y - m_gameWonBackground.getSize().y) / 2 - 80
+    );
+
+    m_gameWonBackground.setOutlineColor(MEDIEVAL_GOLD); // Đổi thành màu vàng medieval
+
+    float buttonWidth = 220;
+    float buttonHeight = 80;
+    float buttonSpacing = 100;
+    float startY = centerPos.y + 80;
+
+    CreateGameWonButton("Next nap",
+        sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow&) {
+            m_gameWon = false;
+            m_gameWonButtons.clear();
+            int nextMap = m_currentMap + 1;
+            if (m_startGameCallback) {
+                m_startGameCallback(nextMap, m_currentDifficulty);
+            }
+            std::cout << "Going to next level: " << nextMap << std::endl;
+        },
+        ButtonStyle::Shield,
+        ButtonIcon::Restart);
+
+    CreateGameWonButton("Main Menu",
+        sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow&) {
+            SetMenuState(MenuState::MainMenu);
+            m_gameWon = false;
+            m_gameWonButtons.clear();
+            m_buttons.clear();
+            m_sliders.clear();
+            m_resolutionDropdownButtons.clear();
+            CreateMainMenu();
+            std::cout << "Returning to Main Menu from game won..." << std::endl;
+        },
+        ButtonStyle::Stone,
+        ButtonIcon::Crown);
+
+    CreateGameWonButton("Exit",
+        sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 3),
+        sf::Vector2f(buttonWidth, buttonHeight),
+        [this](sf::RenderWindow& window) {
+            m_gameWon = false;
+            m_gameWonButtons.clear();
+
+            if (m_exitCallback) {
+                m_exitCallback(window);
+            }
+        },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
+
+    m_gameWonBackground.setPosition(
+        (m_windowSize.x - m_gameWonBackground.getSize().x) / 2,
+        startY - 20
+    );
+    m_gameWonBackground.setOutlineThickness(0);
+}
+
+void MenuManager::CreateGameWonButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
+    std::function<void(sf::RenderWindow&)> callback,
+    ButtonStyle style, ButtonIcon icon, bool isDeleteButton) {
+    Button button;
+    button.shape.setPosition(position);
+    button.shape.setSize(size);
+    button.style = style;
+    button.icon = icon;
+    button.isDeleteButton = isDeleteButton;
+
+    // Set base color based on button type
+    if (isDeleteButton) {
+        button.shape.setFillColor(DELETE_BUTTON_COLOR);
+    }
+    else {
+        button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+    }
+
+    button.shape.setOutlineThickness(4);
+    button.shape.setOutlineColor(MEDIEVAL_GOLD);
+
+    button.text.setFont(m_font);
+    button.text.setString(text);
+
+    int fontSize = 22;
+    if (text.length() > 20) {
+        fontSize = 18;
+    }
+    else if (text.length() > 15) {
+        fontSize = 20;
+    }
+    button.text.setCharacterSize(fontSize);
+    button.text.setFillColor(TEXT_COLOR);
+    button.text.setStyle(sf::Text::Bold);
+
+    // Tạo text shadow
+    button.textShadow.setFont(m_font);
+    button.textShadow.setString(text);
+    button.textShadow.setCharacterSize(fontSize);
+    button.textShadow.setFillColor(MEDIEVAL_SHADOW);
+    button.textShadow.setStyle(sf::Text::Bold);
+
+    CenterTextWithShadow(button.text, button.textShadow, button.shape);
+
+    button.callback = callback;
+    button.state = ButtonState::Normal;
+    button.isVisible = true;
+
+    m_gameWonButtons.push_back(button);
+}
+
 
 void MenuManager::UpdateWindowSize(sf::RenderWindow& window) {
     sf::Vector2f oldWindowSize = m_windowSize;
@@ -3108,6 +3633,9 @@ void MenuManager::SetWaitingForInput(bool waiting) {
 }
 
 
+bool MenuManager::IsGuestProfile() {
+    return m_guestProfile;
+}
 
 void MenuManager::CreateProfileMenu() {
     m_titleShadow.setString("");
@@ -3149,7 +3677,15 @@ void MenuManager::CreateProfileMenu() {
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + BUTTON_SPACING * 2),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
         [this](sf::RenderWindow&) {
-            m_currentProfile = nullptr;
+            if (!m_guestProfile) {
+                PlayerProfile newProfile("Guest");
+                m_profiles.push_back(newProfile);
+                m_currentProfile = &m_profiles.back();
+                m_guestProfile = true;
+
+                SaveProfilesToFile();
+                std::cout << "Created new profile: Guest" << std::endl;
+            }
             SetMenuState(MenuState::MainMenu);
         },
         ButtonStyle::Stone,
@@ -3215,14 +3751,15 @@ void MenuManager::CreateChooseProfileMenu() {
     sf::FloatRect titleBounds = m_titleText.getLocalBounds();
     m_titleText.setPosition((m_windowSize.x - titleBounds.width) / 2, 100);
 
-    float startY = 200;
+    float centerX = m_windowSize.x / 2 - BUTTON_WIDTH / 2;
+    float startY = m_windowSize.y / 2 - BUTTON_HEIGHT * 2;
     int buttonIndex = 0;
 
     for (size_t i = 0; i < m_profiles.size(); ++i) {
-        std::string profileInfo = m_profiles[i].name + " - Lv." + std::to_string(m_profiles[i].level);
+        std::string profileInfo = m_profiles[i].name;
         float profileButtonWidth = BUTTON_WIDTH - 80;
         CreateButton(profileInfo,
-            sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + buttonIndex * BUTTON_SPACING),
+            sf::Vector2f(centerX, startY + buttonIndex * BUTTON_SPACING),
             sf::Vector2f(profileButtonWidth, BUTTON_HEIGHT),
             [this, i](sf::RenderWindow&) {
                 SelectProfile(i);
@@ -3252,6 +3789,7 @@ void MenuManager::CreateChooseProfileMenu() {
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
         [this](sf::RenderWindow&) { SetMenuState(MenuState::ProfileMenu); });
 }
+
 
 void MenuManager::CreateMainMenu() {
     std::string title = m_currentProfile ? "Welcome, " + m_currentProfile->name + "!" : "Welcome, Guest!";
@@ -3288,22 +3826,22 @@ void MenuManager::CreateMainMenu() {
 }
 
 void MenuManager::CreatePlayMenu() {
-    m_titleText.setString("Select Level");
+    m_titleText.setString("Select Map");
     sf::FloatRect titleBounds = m_titleText.getLocalBounds();
     m_titleText.setPosition((m_windowSize.x - titleBounds.width) / 2, 100);
 
-    float startY = 200;
+    float centerX = m_windowSize.x / 2 - BUTTON_WIDTH / 2;
+    float startY = m_windowSize.y / 2 - BUTTON_HEIGHT * 2;
+
     int totalLevels = 4;
     for (int i = 1; i <= totalLevels; ++i) {
-        std::string levelText = "Level " + std::to_string(i);
+        std::string levelText = "Map " + std::to_string(i);
         CreateMedievalButton(levelText,
-            sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY + (i - 1) * BUTTON_SPACING),
+            sf::Vector2f(centerX, startY + (i - 1) * BUTTON_SPACING),
             sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
             [this, i](sf::RenderWindow&) {
-                m_currentLevel = 1;
-                if (m_startGameCallback) {
-                    m_startGameCallback(i);
-                }
+                m_currentMap = i;
+                SetMenuState(MenuState::DifficultyMenu);
             },
             ButtonStyle::WoodPlank,
             ButtonIcon::Target);
@@ -3329,6 +3867,74 @@ void MenuManager::CreatePlayMenu() {
         ButtonStyle::Scroll,
         ButtonIcon::Scroll);
 }
+
+
+void MenuManager::CreateDifficultyMenu() {
+    m_buttons.clear();
+    m_titleText.setString("Select Difficulty");
+    CenterText(m_titleText, sf::RectangleShape(sf::Vector2f(m_windowSize.x, 100)));
+
+    float centerX = m_windowSize.x / 2 - BUTTON_WIDTH / 2;
+    float startY = m_windowSize.y / 2 - BUTTON_HEIGHT * 2;
+
+    CreateMedievalButton("Easy",
+        sf::Vector2f(centerX, startY),
+        sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
+        [this](sf::RenderWindow&) {
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentMap, Difficulty::Easy);
+            }
+            SetMenuState(MenuState::GamePlay);
+        },
+        ButtonStyle::Shield,
+        ButtonIcon::Shield);
+
+    CreateMedievalButton("Medium",
+        sf::Vector2f(centerX, startY + BUTTON_SPACING),
+        sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
+        [this](sf::RenderWindow&) {
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentMap, Difficulty::Medium);
+            }
+            SetMenuState(MenuState::GamePlay);
+        },
+        ButtonStyle::Stone,
+        ButtonIcon::Sword);
+
+    CreateMedievalButton("Hard",
+        sf::Vector2f(centerX, startY + BUTTON_SPACING * 2),
+        sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
+        [this](sf::RenderWindow&) {
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentMap, Difficulty::Hard);
+            }
+            SetMenuState(MenuState::GamePlay);
+        },
+        ButtonStyle::WoodPlank,
+        ButtonIcon::Crown);
+
+    CreateMedievalButton("Extremely",
+        sf::Vector2f(centerX, startY + BUTTON_SPACING * 3),
+        sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
+        [this](sf::RenderWindow&) {
+            if (m_startGameCallback) {
+                m_startGameCallback(m_currentMap, Difficulty::Extremely);
+            }
+            SetMenuState(MenuState::GamePlay);
+        },
+        ButtonStyle::WoodPlank,
+        ButtonIcon::Scroll);
+
+    CreateMedievalButton("Back",
+        sf::Vector2f(centerX, startY + BUTTON_SPACING * 4),
+        sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
+        [this](sf::RenderWindow&) {
+            SetMenuState(MenuState::PlayMenu);
+        },
+        ButtonStyle::Scroll,
+        ButtonIcon::Scroll);
+}
+
 
 void MenuManager::CreateButton(const std::string& text, sf::Vector2f position, sf::Vector2f size,
     std::function<void(sf::RenderWindow&)> callback, bool isDropdownButton) {
@@ -3392,6 +3998,52 @@ void MenuManager::CreateDeleteButton(const std::string& text, sf::Vector2f posit
 void MenuManager::UpdateButtons(sf::RenderWindow& window) {
     sf::Vector2f mousePos = sf::Vector2f(sf::Mouse::getPosition(window));
 
+    if (m_gameOver && m_currentState == MenuState::GamePlay) {
+        for (auto& button : m_gameOverButtons) {
+            if (!button.isVisible) continue;
+
+            if (IsMouseOverButton(button, mousePos)) {
+                if (button.state != ButtonState::Pressed) {
+                    button.state = ButtonState::Hovered;
+                    button.shape.setFillColor(BUTTON_HOVER_GRADIENT_START);
+                }
+            }
+            else {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(MEDIEVAL_WOOD_DARK);
+            }
+
+            if (button.state == ButtonState::Pressed) {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(MEDIEVAL_WOOD_DARK);
+            }
+        }
+        return; // Dừng xử lý nếu đang gameover
+    }
+
+    if (m_gameWon && m_currentState == MenuState::GamePlay) {
+        for (auto& button : m_gameWonButtons) {
+            if (!button.isVisible) continue;
+
+            if (IsMouseOverButton(button, mousePos)) {
+                if (button.state != ButtonState::Pressed) {
+                    button.state = ButtonState::Hovered;
+                    button.shape.setFillColor(BUTTON_HOVER_GRADIENT_START);
+                }
+            }
+            else {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(MEDIEVAL_WOOD_DARK);
+            }
+
+            if (button.state == ButtonState::Pressed) {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(MEDIEVAL_WOOD_DARK);
+            }
+        }
+        return; // Dừng xử lý nếu đang gameover
+    }
+
     if (m_gamePaused && m_currentState == MenuState::GamePlay) {
         for (auto& button : m_pauseButtons) {
             if (!button.isVisible) continue;
@@ -3448,6 +4100,50 @@ void MenuManager::UpdateButtons(sf::RenderWindow& window) {
     // Update pause buttons with medieval styling
     if (m_gamePaused && m_currentState == MenuState::GamePlay) {
         for (auto& button : m_pauseButtons) {
+            if (!button.isVisible) continue;
+
+            if (IsMouseOverButton(button, mousePos)) {
+                if (button.state != ButtonState::Pressed) {
+                    button.state = ButtonState::Hovered;
+                    button.shape.setFillColor(BUTTON_HOVER_GRADIENT_START);
+                }
+            }
+            else {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+            }
+
+            if (button.state == ButtonState::Pressed) {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+            }
+        }
+    }
+
+    if (m_gameOver && m_currentState == MenuState::GamePlay) {
+        for (auto& button : m_gameOverButtons) {
+            if (!button.isVisible) continue;
+
+            if (IsMouseOverButton(button, mousePos)) {
+                if (button.state != ButtonState::Pressed) {
+                    button.state = ButtonState::Hovered;
+                    button.shape.setFillColor(BUTTON_HOVER_GRADIENT_START);
+                }
+            }
+            else {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+            }
+
+            if (button.state == ButtonState::Pressed) {
+                button.state = ButtonState::Normal;
+                button.shape.setFillColor(BUTTON_NORMAL_COLOR);
+            }
+        }
+    }
+
+    if (m_gameWon && m_currentState == MenuState::GamePlay) {
+        for (auto& button : m_gameWonButtons) {
             if (!button.isVisible) continue;
 
             if (IsMouseOverButton(button, mousePos)) {
@@ -3585,6 +4281,20 @@ void MenuManager::SelectProfile(int index) {
     }
 }
 
+void MenuManager::DeleteGuestProfile() {
+    std::string profileName = "Guest";  
+    int deleteCount = 0;
+    for (int i = m_profiles.size() - 1; i >= 0; i--) {
+        if (m_profiles[i].name == profileName) {
+            m_profiles.erase(m_profiles.begin() + i);
+            deleteCount++;
+            std::cout << "Deleted profile: " << profileName << " at index " << i << std::endl;
+        }
+    }
+    SaveProfilesToFile();
+    ShowWarningMessage("Profile deleted: " + profileName);
+}
+
 void MenuManager::DeleteProfile(int index) {
     if (index >= 0 && index < m_profiles.size()) {
         std::string profileName = m_profiles[index].name;
@@ -3638,6 +4348,14 @@ bool MenuManager::IsGamePaused() const {
     return m_gamePaused;
 }
 
+bool MenuManager::IsGameOver() const {
+    return m_gameOver;
+}
+
+bool MenuManager::IsGameWon() const {
+    return m_gameWon;
+}
+
 void MenuManager::RecreateCurrentMenuUI() {
     // Lưu lại trạng thái hiện tại
     MenuState currentState = m_currentState;
@@ -3674,6 +4392,9 @@ void MenuManager::RecreateCurrentMenuUI() {
     case MenuState::PlayMenu:
         CreatePlayMenu();
         break;
+    case MenuState::DifficultyMenu:
+        CreateDifficultyMenu();
+        break;
     case MenuState::Settings:
         m_currentSettingsTab = currentTab;
         CreateSettingsMenu();
@@ -3681,6 +4402,23 @@ void MenuManager::RecreateCurrentMenuUI() {
     case MenuState::GamePlay:
         if (m_gamePaused) {
             CreatePauseMenu();
+        }
+        else {
+            m_titleText.setString("");
+            m_titleShadow.setString("");
+        }
+
+        if (m_gameOver) {
+            CreateGameOverMenu();
+            ;
+        }
+        else {
+            m_titleText.setString("");
+            m_titleShadow.setString("");
+        }
+
+        if (m_gameWon) {
+            CreateGameWonMenu();
         }
         else {
             m_titleText.setString("");
@@ -3789,7 +4527,14 @@ void MenuManager::LoadSettingsFromFile() {
     file.close();
 }
 
+
 void MenuManager::SaveProfilesToFile() {
+    std::ofstream file(PROFILES_FILE_PATH);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open profiles file for writing: " << PROFILES_FILE_PATH << std::endl;
+        return;
+    }
+
     try {
         json root;
         json profilesArray = json::array();
@@ -3797,61 +4542,70 @@ void MenuManager::SaveProfilesToFile() {
         for (const auto& profile : m_profiles) {
             json profileJson;
             profileJson["name"] = profile.name;
-            profileJson["level"] = profile.level;
-            profileJson["experience"] = profile.experience;
-            profileJson["highScore"] = profile.highScore;
+            profileJson["map"] = profile.map;
+            profileJson["difficulty"] = static_cast<int>(profile.difficulty);
+            profileJson["won"] = profile.won;
             profileJson["savedLevel"] = profile.savedLevel;
-            profileJson["savedDifficulty"] = profile.savedDifficulty;
             profileJson["savedGold"] = profile.savedGold;
+            profileJson["currentLevel"] = profile.currentLevel;
 
-            json towersArray = json::array();
-            for (const auto& tower : profile.savedTowers) {
-                json towerJson;
-                towerJson["x"] = tower.x;
-                towerJson["y"] = tower.y;
-                towerJson["type"] = tower.type;
-                towerJson["level"] = tower.level;
-                towersArray.push_back(towerJson);
-            }
-            profileJson["savedTowers"] = towersArray;
+            // Save game states for all maps and difficulties
+            json gameStatesArray = json::array();
+            for (int mapIndex = 0; mapIndex < 4; mapIndex++) {
+                json mapStatesArray = json::array();
+                for (int diffIndex = 0; diffIndex < 4; diffIndex++) {
+                    const auto& gameState = profile.gameStates[mapIndex][diffIndex];
+                    json stateJson;
 
-            json mapArray = json::array();
-            for (const auto& row : profile.savedMapLayout) {
-                json rowArray = json::array();
-                for (int cell : row) {
-                    rowArray.push_back(cell);
+                    stateJson["playerHealth"] = gameState.playerHealth;
+                    stateJson["timeInPlayMode"] = gameState.timeInPlayMode;
+                    stateJson["savedGoldForState"] = gameState.savedGoldForState;
+                    stateJson["towerCounts"] = gameState.towerCounts;
+                    stateJson["spawnedEnemies"] = gameState.spawnedEnemies;
+                    stateJson["killedEnemies"] = gameState.killedEnemies;
+
+                    // Save towers
+                    json towersArray = json::array();
+                    for (const auto& tower : gameState.savedTowers) {
+                        json towerJson;
+                        towerJson["x"] = tower.x;
+                        towerJson["y"] = tower.y;
+                        towerJson["type"] = tower.type;
+                        towerJson["level"] = tower.level;
+                        towersArray.push_back(towerJson);
+                    }
+                    stateJson["savedTowers"] = towersArray;
+
+                    mapStatesArray.push_back(stateJson);
                 }
-                mapArray.push_back(rowArray);
+                gameStatesArray.push_back(mapStatesArray);
             }
-            profileJson["savedMapLayout"] = mapArray;
+            profileJson["gameStates"] = gameStatesArray;
 
-            json pathArray = json::array();
-            for (const auto& point : profile.savedEnemyPath) {
-                json pointJson;
-                pointJson["x"] = point.x;
-                pointJson["y"] = point.y;
-                pathArray.push_back(pointJson);
+            // Save map completions
+            json mapCompletionsArray = json::array();
+            for (const auto& completion : profile.mapCompletions) {
+                json completionJson;
+                completionJson["easy"] = completion.easy;
+                completionJson["medium"] = completion.medium;
+                completionJson["hard"] = completion.hard;
+                completionJson["extremely"] = completion.extremely;
+                mapCompletionsArray.push_back(completionJson);
             }
-            profileJson["savedEnemyPath"] = pathArray;
+            profileJson["mapCompletions"] = mapCompletionsArray;
 
             profilesArray.push_back(profileJson);
         }
 
         root["profiles"] = profilesArray;
-
-        std::ofstream file(PROFILES_FILE_PATH);
-        if (file.is_open()) {
-            file << root.dump(4);
-            file.close();
-            std::cout << "Profiles saved to " << PROFILES_FILE_PATH << std::endl;
-        }
-        else {
-            std::cerr << "Could not open file for writing: " << PROFILES_FILE_PATH << std::endl;
-        }
+        file << root.dump(4);
+        std::cout << "Saved " << m_profiles.size() << " profiles to " << PROFILES_FILE_PATH << std::endl;
     }
     catch (const json::exception& e) {
         std::cerr << "JSON error while saving profiles: " << e.what() << std::endl;
     }
+
+    file.close();
 }
 
 void MenuManager::LoadProfilesFromFile() {
@@ -3871,43 +4625,114 @@ void MenuManager::LoadProfilesFromFile() {
             for (const auto& profileJson : root["profiles"]) {
                 PlayerProfile profile;
                 profile.name = profileJson.value("name", "");
-                profile.level = profileJson.value("level", 1);
-                profile.experience = profileJson.value("experience", 0);
-                profile.highScore = profileJson.value("highScore", 0);
+                profile.map = profileJson.value("map", 1);
+                profile.difficulty = static_cast<Difficulty>(profileJson.value("difficulty", 0));
+                profile.won = profileJson.value("won", false);
                 profile.savedLevel = profileJson.value("savedLevel", 1);
-                profile.savedDifficulty = profileJson.value("savedDifficulty", 1.0f);
                 profile.savedGold = profileJson.value("savedGold", 10);
+                profile.currentLevel = profileJson.value("currentLevel", 1);
 
-                if (profileJson.contains("savedTowers") && profileJson["savedTowers"].is_array()) {
-                    for (const auto& towerJson : profileJson["savedTowers"]) {
-                        TowerData tower;
-                        tower.x = towerJson.value("x", 0);
-                        tower.y = towerJson.value("y", 0);
-                        tower.type = towerJson.value("type", 0);
-                        tower.level = towerJson.value("level", 1);
-                        profile.savedTowers.push_back(tower);
-                    }
-                }
+                // Load game states for each map and difficulty
+                if (profileJson.contains("gameStates") && profileJson["gameStates"].is_array()) {
+                    auto gameStatesArray = profileJson["gameStates"];
+                    for (int mapIndex = 0; mapIndex < 4; mapIndex++) {
+                        if (mapIndex < gameStatesArray.size() && gameStatesArray[mapIndex].is_array()) {
+                            auto mapStates = gameStatesArray[mapIndex];
+                            for (int diffIndex = 0; diffIndex < 4; diffIndex++) {
+                                if (diffIndex < mapStates.size() && mapStates[diffIndex].is_object()) {
+                                    auto stateJson = mapStates[diffIndex];
+                                    auto& gameState = profile.gameStates[mapIndex][diffIndex];
 
-                if (profileJson.contains("savedMapLayout") && profileJson["savedMapLayout"].is_array()) {
-                    for (const auto& rowJson : profileJson["savedMapLayout"]) {
-                        if (rowJson.is_array()) {
-                            std::vector<int> row;
-                            for (const auto& cellJson : rowJson) {
-                                row.push_back(cellJson.get<int>());
+                                    gameState.playerHealth = stateJson.value("playerHealth", 100);
+                                    gameState.timeInPlayMode = stateJson.value("timeInPlayMode", 0.0f);
+                                    gameState.savedGoldForState = stateJson.value("savedGoldForState", 10);
+
+                                    // Load tower counts
+                                    if (stateJson.contains("towerCounts") && stateJson["towerCounts"].is_array()) {
+                                        auto towerCountsArray = stateJson["towerCounts"];
+                                        gameState.towerCounts.clear();
+                                        for (size_t i = 0; i < 4; ++i) {
+                                            if (i < towerCountsArray.size()) {
+                                                gameState.towerCounts.push_back(towerCountsArray[i].get<int>());
+                                            }
+                                            else {
+                                                gameState.towerCounts.push_back(0);
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        gameState.towerCounts = { 0, 0, 0, 0 };
+                                    }
+
+                                    // Load spawned enemies
+                                    if (stateJson.contains("spawnedEnemies") && stateJson["spawnedEnemies"].is_array()) {
+                                        auto spawnedEnemiesArray = stateJson["spawnedEnemies"];
+                                        gameState.spawnedEnemies.clear();
+                                        for (size_t i = 0; i < 4; ++i) {
+                                            if (i < spawnedEnemiesArray.size()) {
+                                                gameState.spawnedEnemies.push_back(spawnedEnemiesArray[i].get<int>());
+                                            }
+                                            else {
+                                                gameState.spawnedEnemies.push_back(0);
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        gameState.spawnedEnemies = { 0, 0, 0, 0 };
+                                    }
+
+                                    // Load killed enemies
+                                    if (stateJson.contains("killedEnemies") && stateJson["killedEnemies"].is_array()) {
+                                        auto killedEnemiesArray = stateJson["killedEnemies"];
+                                        gameState.killedEnemies.clear();
+                                        for (size_t i = 0; i < 4; ++i) {
+                                            if (i < killedEnemiesArray.size()) {
+                                                gameState.killedEnemies.push_back(killedEnemiesArray[i].get<int>());
+                                            }
+                                            else {
+                                                gameState.killedEnemies.push_back(0);
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        gameState.killedEnemies = { 0, 0, 0, 0 };
+                                    }
+
+                                    // Load saved towers
+                                    if (stateJson.contains("savedTowers") && stateJson["savedTowers"].is_array()) {
+                                        for (const auto& towerJson : stateJson["savedTowers"]) {
+                                            TowerData tower;
+                                            tower.x = towerJson.value("x", 0);
+                                            tower.y = towerJson.value("y", 0);
+                                            tower.type = towerJson.value("type", 0);
+                                            tower.level = towerJson.value("level", 1);
+                                            gameState.savedTowers.push_back(tower);
+                                        }
+                                    }
+                                }
                             }
-                            profile.savedMapLayout.push_back(row);
                         }
                     }
                 }
 
-                if (profileJson.contains("savedEnemyPath") && profileJson["savedEnemyPath"].is_array()) {
-                    for (const auto& pointJson : profileJson["savedEnemyPath"]) {
-                        PathPoint point;
-                        point.x = pointJson.value("x", 0);
-                        point.y = pointJson.value("y", 0);
-                        profile.savedEnemyPath.push_back(point);
+                // Load map completions (keep existing code)
+                if (profileJson.contains("mapCompletions") && profileJson["mapCompletions"].is_array()) {
+                    auto mapCompletionsArray = profileJson["mapCompletions"];
+                    profile.mapCompletions.clear();
+                    for (size_t i = 0; i < 4; ++i) {
+                        PlayerProfile::CompletionData completion;
+                        if (i < mapCompletionsArray.size()) {
+                            const auto& completionJson = mapCompletionsArray[i];
+                            completion.easy = completionJson.value("easy", false);
+                            completion.medium = completionJson.value("medium", false);
+                            completion.hard = completionJson.value("hard", false);
+                            completion.extremely = completionJson.value("extremely", false);
+                        }
+                        profile.mapCompletions.push_back(completion);
                     }
+                }
+                else {
+                    profile.mapCompletions.resize(4);
                 }
 
                 if (!profile.name.empty()) {
@@ -3924,7 +4749,6 @@ void MenuManager::LoadProfilesFromFile() {
     file.close();
 }
 
-void MenuManager::SetStartGameCallback(std::function<void(int)> callback) {
+void MenuManager::SetStartGameCallback(std::function<void(int, Difficulty)> callback) {
     m_startGameCallback = callback;
 }
-

@@ -5,7 +5,11 @@
       <FullPath>C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\x64\Debug\Game Project.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
-  <ContentFiles />
+  <ContentFiles>
+    <ContentFile>
+      <FullPath>C:\Users\ASUS\OneDrive\Desktop\TOWER_DEFENSE-main\Game Project\Game Project\game.cpp</FullPath>
+    </ContentFile>
+  </ContentFiles>
   <SatelliteDlls />
   <NonRecipeFileRefs />
 </Project>

@@ -1,28 +1,862 @@
 {
     "profiles": [
         {
-            "experience": 0,
-            "highScore": 0,
-            "level": 1,
+            "currentLevel": 1,
+            "difficulty": 0,
+            "gameStates": [
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ]
+            ],
+            "map": 1,
+            "mapCompletions": [
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                },
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                },
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                },
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                }
+            ],
             "name": "Dava",
-            "savedDifficulty": 1.0,
-            "savedEnemyPath": [],
             "savedGold": 10,
             "savedLevel": 1,
-            "savedMapLayout": [],
-            "savedTowers": []
+            "won": false
         },
         {
-            "experience": 0,
-            "highScore": 0,
-            "level": 1,
-            "name": "qwe",
-            "savedDifficulty": 1.0,
-            "savedEnemyPath": [],
-            "savedGold": 10,
+            "currentLevel": 1,
+            "difficulty": 0,
+            "gameStates": [
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                [
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "killedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "playerHealth": 100,
+                        "savedGoldForState": 10,
+                        "savedTowers": [],
+                        "spawnedEnemies": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "timeInPlayMode": 0.0,
+                        "towerCounts": [
+                            0,
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ]
+            ],
+            "map": 1,
+            "mapCompletions": [
+                {
+                    "easy": true,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                },
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                },
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                },
+                {
+                    "easy": false,
+                    "extremely": false,
+                    "hard": false,
+                    "medium": false
+                }
+            ],
+            "name": "Guest",
+            "savedGold": 172,
             "savedLevel": 1,
-            "savedMapLayout": [],
-            "savedTowers": []
+            "won": true
         }
     ]
 }

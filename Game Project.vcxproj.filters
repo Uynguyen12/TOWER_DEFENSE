@@ -53,6 +53,15 @@
     <ClCompile Include="TileOptions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UIManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TowerSelectionPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TitleScreen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DamageTextManager.h">
@@ -80,6 +89,15 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="TileOptions.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UIManager.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TowerSelectionPanel.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TitleScreen.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
