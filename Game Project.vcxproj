@@ -33,6 +33,7 @@
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="MapGrid.cpp" />
     <ClCompile Include="MenuManager.cpp" />
+    <ClCompile Include="PlayerTextManager.cpp" />
     <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="TileOptions.cpp" />
     <ClCompile Include="TitleScreen.cpp" />
@@ -47,6 +48,7 @@
     <ClInclude Include="MapGrid.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="MenuManager.h" />
+    <ClInclude Include="PlayerTextManager.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="TileOptions.h" />
     <ClInclude Include="TitleScreen.h" />

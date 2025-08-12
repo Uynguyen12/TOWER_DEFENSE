@@ -96,8 +96,7 @@ Game::Game()
     m_GameModeText.setPosition(sf::Vector2f(windowSize.x * 0.4f, windowSize.y * 0.1f));
     m_GameModeText.setString("Play Mode");
 
-    m_PlayerText.setPosition(sf::Vector2f(1500, 100));
-    m_PlayerText.setFont(m_Font);
+    m_PlayerTextManager.Initialize(m_Font);
 
     m_GameOverText.setCharacterSize(100);
     m_GameOverText.setPosition(sf::Vector2f(windowSize.x * 0.5f - m_GameOverText.getLocalBounds().width / 2, windowSize.y * 0.5f));
@@ -1424,8 +1423,10 @@ void Game::DrawPlay() {
     DrawGhostTower();
     DrawTowerStats();
 
+    DamageTextManager::getInstanceConst().Draw(m_Window);
+
     UpdatePlayerText();
-    m_Window.draw(m_PlayerText);
+    m_PlayerTextManager.Draw(m_Window);
 }
 
 void Game::Draw() {
@@ -1792,77 +1793,12 @@ void Game::UpdatePlayerText() {
         totalEnemiesRemaining += m_EnemyConfigs[i].count - m_killedEnemies[i];
     }
 
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(1) << m_fGoldPerSecond;
-
     sf::Vector2u windowSize = m_Window.getSize();
 
-    switch (m_iCurrentMap) {
-    case 1:
-    {
-        // Lấy kích thước của text để tính toán vị trí chính xác
-        sf::FloatRect textBounds = m_PlayerText.getLocalBounds();
+    // Update content
+    m_PlayerTextManager.UpdateContent(difficultyStr, m_iPlayerGold, m_iPlayerHealth,
+        m_fGoldPerSecond, totalEnemiesRemaining);
 
-        float margin = 20.0f; // Khoảng cách từ edge phải
-        float posX = windowSize.x - textBounds.width - margin;
-        float posY = 0.0f; 
-
-        m_PlayerText.setPosition(posX, posY);
-        m_PlayerText.setCharacterSize(35);
-        m_PlayerText.setFillColor(sf::Color(255, 215, 0)); // Gold color
-    }
-    break;
-
-    case 2:
-    {
-
-        float margin = 20.0f; // Khoảng cách từ edge phải
-        float posX = windowSize.x * 0.2;
-        float posY = 0.0f;
-
-        m_PlayerText.setPosition(posX, posY);
-        m_PlayerText.setCharacterSize(28);
-        m_PlayerText.setFillColor(sf::Color(144, 238, 144));
-        break;
-    }
-    case 3:
-    {
-        sf::FloatRect textBounds = m_PlayerText.getLocalBounds();
-
-        float margin = 80.0f;
-        float posY = windowSize.y - textBounds.height - margin;
-        float posX = 0;
-
-        m_PlayerText.setPosition(posX, posY);
-        m_PlayerText.setCharacterSize(35);
-        m_PlayerText.setFillColor(sf::Color(173, 216, 230));
-        break;
-    }
-    case 4:
-    {
-        sf::FloatRect textBounds = m_PlayerText.getLocalBounds();
-
-        float margin = 20.0f;
-        float posX = 0;
-        float posY = 0;
-
-        m_PlayerText.setPosition(posX, posY);
-        m_PlayerText.setCharacterSize(35);
-        m_PlayerText.setFillColor(sf::Color(255, 182, 193));
-        break;
-    }
-    default:
-        m_PlayerText.setPosition(sf::Vector2f(50.0f, 50.0f));
-        m_PlayerText.setCharacterSize(20);
-        m_PlayerText.setFillColor(sf::Color::White);
-        break;
-    }
-
-    m_PlayerText.setString("Difficulty: " + difficultyStr +
-        "\nPlayer's Gold: " + std::to_string(m_iPlayerGold) +
-        "\nPlayer's Health: " + std::to_string(m_iPlayerHealth) +
-        "\nGold Per Second: " + ss.str() +
-        "\nEnemies Remaining: " + std::to_string(totalEnemiesRemaining));
 }
 
 bool Game::CheckVictoryConditions() {
@@ -1945,7 +1881,6 @@ void Game::ResetGameState() {
     m_bGameOverTriggered = false;
 
     m_GameModeText.setString("Play Mode");
-    m_PlayerText.setString("Player Gold: " + std::to_string(m_iPlayerGold) + "\nHealth: " + std::to_string(m_iPlayerHealth));
 }
 
 void Game::ReturnToMenu() {

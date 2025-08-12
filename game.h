@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include "PlayerTextManager.h"
 #include "MenuManager.h"
 #include "UIManager.h"
 #include "TowerSelectionPanel.h"
@@ -150,7 +151,10 @@ private:
     sf::Time m_deltaTime;
     GameMode m_eGameMode;
     Difficulty m_eDifficulty;
-
+    
+    //Player's text
+     PlayerTextManager m_PlayerTextManager; 
+    
     //Title screen
      TitleScreen m_TitleScreen;
 

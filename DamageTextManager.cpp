@@ -46,6 +46,8 @@ void DamageTextManager::AddDamageText(int damage, const sf::Vector2f& pos) {
 	text.setFont(m_Font);
 	text.setString(std::to_string(damage));
 	text.setCharacterSize(36);
+
+	text.setFillColor(sf::Color::Red);
 	text.setOutlineColor(sf::Color::Black);
 	text.setOutlineThickness(2.0f);
 	text.setPosition(pos);
