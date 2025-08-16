@@ -45,15 +45,22 @@ Game::Game()
     , m_GhostTowerColor(sf::Color::Blue)
     , m_ClickedTowerIndex(-1) 
     , m_ShowTowerStats(false)
+    , m_ShowDeleteButton(false)
+    , m_IsDeleteButtonHovered(false)
+    , m_GameSpeedMultiplier(1.0f)
 {
     m_MenuManager.LoadSettingsFromFile();
 
     auto settings = m_MenuManager.GetSettings();
     m_Window.create(sf::VideoMode(settings.resolution.x, settings.resolution.y), "SFML window");
 
+    // Initialize UI Text
+    sf::Vector2u windowSize = m_Window.getSize();
+
     if (!m_TitleScreen.Initialize(m_Window)) {
         throw std::runtime_error("Failed to initialize Title Screen");
     }
+
 
     // Gọi thêm hàm resize để đảm bảo vị trí các phần tử UI đúng
     m_TitleScreen.HandleResize(m_Window.getSize());
@@ -65,9 +72,7 @@ Game::Game()
     m_MenuManager.SetResolutionChangeCallback([this](sf::Vector2u newResolution) {
         std::cout << "Game received resolution change: " << newResolution.x << "x" << newResolution.y << std::endl;
         // Update UI text positions
-        m_GameModeText.setPosition(sf::Vector2f(newResolution.x * 0.75f, newResolution.y * 0.1f));
         m_PlayerText.setPosition(sf::Vector2f(newResolution.x * 0.75f, newResolution.y * 0.05f));
-        m_GameOverText.setPosition(sf::Vector2f(newResolution.x * 0.5f - m_GameOverText.getLocalBounds().width / 2, newResolution.y * 0.5f));
         // Update map scaling (assumes Map::UpdateScale exists)
         //m_Map.UpdateScale(sf::Vector2f(newResolution));
         });
@@ -90,18 +95,8 @@ Game::Game()
         throw std::runtime_error("Failed to load font from 'Fonts/MedievalSharp-Regular.ttf'");
     }
 
-    // Initialize UI Text
-    sf::Vector2u windowSize = m_Window.getSize();
-    m_GameModeText.setFont(m_Font);
-    m_GameModeText.setPosition(sf::Vector2f(windowSize.x * 0.4f, windowSize.y * 0.1f));
-    m_GameModeText.setString("Play Mode");
-
     m_PlayerTextManager.Initialize(m_Font);
-
-    m_GameOverText.setCharacterSize(100);
-    m_GameOverText.setPosition(sf::Vector2f(windowSize.x * 0.5f - m_GameOverText.getLocalBounds().width / 2, windowSize.y * 0.5f));
-    m_GameOverText.setString("GAME OVERRR");
-
+    UpdateExperienceBarVisibility();
 
     // Set up MenuManager callbacks
     m_MenuManager.SetExitCallback([this](sf::RenderWindow& window) {
@@ -154,6 +149,19 @@ Game::Game()
     m_StatsContentText.setCharacterSize(16);
     m_StatsContentText.setFillColor(sf::Color(255, 240, 200));
 
+
+    // Initialize delete button
+    m_DeleteButton.setSize(sf::Vector2f(40.0f, 40.0f));
+    m_DeleteButton.setFillColor(sf::Color(150, 50, 50, 220));
+    m_DeleteButton.setOutlineColor(sf::Color(255, 100, 100));
+    m_DeleteButton.setOutlineThickness(2.0f);
+
+    m_DeleteButtonText.setFont(m_Font);
+    m_DeleteButtonText.setString("X");
+    m_DeleteButtonText.setCharacterSize(20);
+    m_DeleteButtonText.setFillColor(sf::Color(255, 200, 200));
+    m_DeleteButtonText.setStyle(sf::Text::Bold);
+
      // Load tower textures and initialize templates
     InitializeTowerSystem();
 
@@ -176,6 +184,13 @@ Game::Game()
 
     m_TowerSelectionPanel.SetWindowSize(m_Window.getSize());
 
+    //Speed control
+    if (!m_SpeedControlPanel.Initialize(m_Window)) {
+        throw std::runtime_error("Failed to initialize Speed Control Panel");
+    }
+
+    m_SpeedControlPanel.SetWindowSize(m_Window.getSize());
+
     // Set initial UI positions
     m_UIManager.SetHealthBarPosition(sf::Vector2f(50.0f, 50.0f));
     m_UIManager.SetHealthBarSize(sf::Vector2f(200.0f, 20.0f));
@@ -190,6 +205,15 @@ void Game::run() {
     sf::Clock clock;
     while (m_Window.isOpen()) {
         m_deltaTime = clock.restart();
+
+        static bool wasGuestProfile = m_MenuManager.IsGuestProfile();
+        bool isCurrentlyGuestProfile = m_MenuManager.IsGuestProfile();
+
+        if (wasGuestProfile != isCurrentlyGuestProfile) {
+            OnProfileChanged();
+            wasGuestProfile = isCurrentlyGuestProfile;
+        }
+
         HandleInput();
         if (!m_MenuManager.IsInGamePlay() || m_MenuManager.IsGamePaused() || m_MenuManager.IsGameOver() || m_MenuManager.IsGameWon()) {
             m_MenuManager.Update(m_Window, m_deltaTime.asSeconds());
@@ -200,7 +224,6 @@ void Game::run() {
         Draw();
     }
 }
-
 void Game::InitializeTowerSystem() {
     // Load tower textures
     std::vector<std::string> towerTexturePaths = {
@@ -426,7 +449,6 @@ void Game::UpdateTitleScreen() {
 
     if (m_TitleScreen.ShouldExit()) {
         m_eGameMode = Play;
-        m_GameModeText.setString("Menu Mode");
 
         // Thêm dòng này để chuyển đến menu profile
         m_MenuManager.SetMenuState(MenuManager::MenuState::ProfileMenu);
@@ -437,14 +459,13 @@ void Game::HandleTitleScreenInput(sf::Event& event) {
     if (event.type == sf::Event::KeyPressed ||
         (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)) {
         m_eGameMode = Play;
-        m_GameModeText.setString("Play Mode");
         m_MenuManager.SetMenuState(MenuManager::MenuState::ProfileMenu);
     }
     m_TitleScreen.HandleInput(event);
 }
 
 
-void Game::UpdateEnemySpawning() {
+void Game::UpdateEnemySpawning(float adjustedDeltaTime) {
     if (m_MenuManager.IsGamePaused()) {
         return;
     }
@@ -467,7 +488,7 @@ void Game::UpdateEnemySpawning() {
     if (spawnCoords != sf::Vector2i(-1, -1) && !paths.empty() && m_enemies.size() < m_iMaxEnemies) {
         static float fSpawnTimer = 0.0f;
         float fSpawnRate = m_fDifficulty;
-        fSpawnTimer += m_deltaTime.asSeconds() * fSpawnRate;
+        fSpawnTimer += adjustedDeltaTime * fSpawnRate;
         if (fSpawnTimer > 3.0f) {
             int totalEnemies = 0;
             for (const auto& config : m_EnemyConfigs) {
@@ -556,7 +577,7 @@ void Game::UpdateEnemySpawning() {
     }
 }
 
-void Game::UpdateEnemyMovement() {
+void Game::UpdateEnemyMovement(float adjustedDeltaTime) {
     if (m_MenuManager.IsGamePaused()) {
         return;
     }
@@ -641,9 +662,9 @@ const Map::PathTile* Game::FindClosestPathTile(const Entity& enemy, const Map::P
 }
 
 
-void Game::UpdateGoldCalculation() {
+void Game::UpdateGoldCalculation(float adjustedDeltaTime) {
     static float fAutoGoldTimer = 0.0f;
-    fAutoGoldTimer += m_deltaTime.asSeconds();
+    fAutoGoldTimer += adjustedDeltaTime;
     if (fAutoGoldTimer >= 1.0f) {
         int goldToAdd = static_cast<int>(m_fGoldPerSecond);
         AddGold(goldToAdd);
@@ -673,8 +694,22 @@ void Game::UpdatePlay() {
         return;
     }
 
+    // Apply speed multiplier
+  
+
+    // Update speed control panel
+    sf::Vector2f mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(m_Window));
+    m_SpeedControlPanel.Update(m_deltaTime.asSeconds(), mousePos);
+    m_GameSpeedMultiplier = m_SpeedControlPanel.GetSpeedMultiplier();
+
+    float adjustedDeltaTime = m_deltaTime.asSeconds() * m_GameSpeedMultiplier;
+    sf::Time adjustedDelta = sf::seconds(adjustedDeltaTime);
+
     m_fTimeInPlayMode += m_deltaTime.asSeconds();
     m_fDifficulty += m_deltaTime.asSeconds() / 10.0f;
+
+    // Update delete button
+    UpdateDeleteButton(mousePos);
 
     // Update UI
     if (m_iPlayerHealth <= 0) {
@@ -686,7 +721,7 @@ void Game::UpdatePlay() {
 
     if (CheckVictoryConditions() && !m_bVictoryTriggered) {
         m_bVictoryTriggered = true;
-        m_MenuManager.ShowGameWonMenu();
+        
 
         if (!m_bGameWonSoundPlayed) {
             SoundManager::getInstance().StopBackgroundMusic();
@@ -694,12 +729,16 @@ void Game::UpdatePlay() {
             m_bGameWonSoundPlayed = true;
         }
         HandleVictory();
+
+        m_MenuManager.ShowGameWonMenu();
         return;
     }
 
     m_UIManager.Update(m_deltaTime.asSeconds());
     m_UIManager.UpdateHealthBar(m_iPlayerHealth, 100);
+    m_TowerSelectionPanel.Update(adjustedDeltaTime, mousePos, m_iPlayerGold, m_TowerCosts);
 
+    m_UIManager.Update(adjustedDeltaTime);
     DamageTextManager::getInstanceNonConst().Update(m_deltaTime);
 
     m_TowerSelectionPanel.Update(
@@ -709,19 +748,18 @@ void Game::UpdatePlay() {
         m_TowerCosts
     );
 
-    sf::Vector2f mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition(m_Window));
     UpdateRangeVisualization(mousePos);
     UpdateTowerStats();
 
-    UpdateEnemySpawning();
-    UpdateTower();
-    UpdateProjectiles();
-    UpdateEnemyMovement();
+    UpdateEnemySpawning(adjustedDeltaTime);
+    UpdateTower(adjustedDeltaTime);
+    UpdateProjectiles(adjustedDeltaTime);
+    UpdateEnemyMovement(adjustedDeltaTime);
 
     // Update gold per second calculation
-    UpdateGoldCalculation();
+    UpdateGoldCalculation(adjustedDeltaTime);
 
-    UpdatePhysics();
+    UpdatePhysics(adjustedDeltaTime);
     CheckForDeletionRequest();
 
     //Auto save game
@@ -751,13 +789,13 @@ Entity* Game::FindClosestEnemyInRange(const Entity& tower) {
     return pClosestEnemy;
 }
 
-void Game::UpdateTower() {
+void Game::UpdateTower(float adjustedDeltaTime) {
     if (m_MenuManager.IsGamePaused()) {
         return;
     }
 
     for (Entity& tower : m_Towers) {
-        tower.m_fAttackTimer -= m_deltaTime.asSeconds();
+        tower.m_fAttackTimer -= adjustedDeltaTime;
         if (tower.m_fAttackTimer > 0.0f) continue;
 
         Entity* pClosestEnemy = nullptr;
@@ -822,13 +860,13 @@ void Game::UpdateTower() {
 }
 
 
-void Game::UpdateProjectiles() {
+void Game::UpdateProjectiles(float adjustedDeltaTime) {
     if (m_MenuManager.IsGamePaused()) {
         return;
     }
 
     for (Entity& projectile : m_projectiles) { // Có thể đổi tên m_axes thành m_projectiles sau
-        projectile.m_fBulletTimer -= m_deltaTime.asSeconds();
+        projectile.m_fBulletTimer -= adjustedDeltaTime;
 
         int projectileType = projectile.GetType();
 
@@ -953,13 +991,13 @@ void Game::CheckForDeletionRequest() {
     }
 }
 
-void Game::UpdatePhysics() {
+void Game::UpdatePhysics(float adjustedDeltaTime) {
     if (m_MenuManager.IsGamePaused()) {
         return;
     }
 
     const float fMaxDeltaTime = 0.1f;
-    const float fDeltaTime = std::min(m_deltaTime.asSeconds(), fMaxDeltaTime);
+    const float fDeltaTime = std::min(adjustedDeltaTime, fMaxDeltaTime);
 
     std::vector<Entity*> AllEntities;
 
@@ -1000,6 +1038,82 @@ void Game::UpdatePhysics() {
         }
     }
 }
+
+void Game::UpdateDeleteButton(const sf::Vector2f& mousePos) {
+    if (m_ClickedTowerIndex != -1 && m_ShowTowerStats) {
+        m_ShowDeleteButton = true;
+
+        // Position delete button below stats panel
+        sf::Vector2f buttonPos = m_StatsPanel.getPosition();
+        buttonPos.y += m_StatsPanel.getSize().y + 10.0f;
+        m_DeleteButton.setPosition(buttonPos);
+
+        // Center text in button
+        sf::FloatRect textBounds = m_DeleteButtonText.getLocalBounds();
+        m_DeleteButtonText.setPosition(
+            buttonPos.x + (m_DeleteButton.getSize().x - textBounds.width) / 2,
+            buttonPos.y + (m_DeleteButton.getSize().y - textBounds.height) / 2 - 2.0f
+        );
+
+        // Update hover effect
+        bool wasHovered = m_IsDeleteButtonHovered;
+        m_IsDeleteButtonHovered = IsMouseOverDeleteButton(mousePos);
+
+        if (m_IsDeleteButtonHovered != wasHovered) {
+            if (m_IsDeleteButtonHovered) {
+                m_DeleteButton.setFillColor(sf::Color(200, 70, 70, 240));
+                m_DeleteButton.setOutlineColor(sf::Color(255, 150, 150));
+                m_DeleteButtonText.setFillColor(sf::Color::White);
+            }
+            else {
+                m_DeleteButton.setFillColor(sf::Color(150, 50, 50, 220));
+                m_DeleteButton.setOutlineColor(sf::Color(255, 100, 100));
+                m_DeleteButtonText.setFillColor(sf::Color(255, 200, 200));
+            }
+        }
+    }
+    else {
+        m_ShowDeleteButton = false;
+    }
+}
+
+bool Game::IsMouseOverDeleteButton(const sf::Vector2f& mousePos) {
+    return m_ShowDeleteButton && m_DeleteButton.getGlobalBounds().contains(mousePos);
+}
+
+bool Game::DeleteTowerAtIndex(int towerIndex) {
+    if (towerIndex < 0 || towerIndex >= static_cast<int>(m_Towers.size())) {
+        return false;
+    }
+
+    // Get tower type and refund gold (50% of original cost)
+    int towerType = m_Towers[towerIndex].GetType() - 1;
+    int refundAmount = m_TowerConfigs[towerType].cost / 2;
+    AddGold(refundAmount);
+
+    // Decrease tower count
+    m_TowerCounts[towerType]--;
+
+    // Remove tower from vector
+    m_Towers.erase(m_Towers.begin() + towerIndex);
+
+    // Reset UI states
+    m_ClickedTowerIndex = -1;
+    HideTowerStatsPanel();
+    HideRange();
+    m_ShowDeleteButton = false;
+
+    std::cout << "Tower deleted! Refunded " << refundAmount << " gold." << std::endl;
+    return true;
+}
+
+void Game::DrawDeleteButton() {
+    if (m_ShowDeleteButton) {
+        m_Window.draw(m_DeleteButton);
+        m_Window.draw(m_DeleteButtonText);
+    }
+}
+
 
 void Game::UpdateRangeVisualization(const sf::Vector2f& mousePos) {
     m_LastMousePosition = mousePos;
@@ -1405,9 +1519,6 @@ bool Game::isColiding(const Entity& entity1, const Entity& entity2) {
 }
 
 void Game::DrawPlay() {
-    if (m_iPlayerHealth <= 0) {
-        m_Window.draw(m_GameOverText);
-    }
 
     for (const Entity& tower : m_Towers) {
         m_Window.draw(tower);
@@ -1422,6 +1533,7 @@ void Game::DrawPlay() {
     DrawRangeIndicator();
     DrawGhostTower();
     DrawTowerStats();
+    DrawDeleteButton();
 
     DamageTextManager::getInstanceConst().Draw(m_Window);
 
@@ -1446,7 +1558,6 @@ void Game::Draw() {
         else {
             m_Map.Draw(m_Window);
             //m_Window.draw(m_GoldCoinSprite);
-            m_Window.draw(m_GameModeText);
             m_Window.draw(m_PlayerText);
             if (m_iPlayerHealth > 0 || !m_MenuManager.IsGameOver() || !m_MenuManager.IsGameWon()) {
                 m_Window.draw(m_PlayerText);
@@ -1455,6 +1566,8 @@ void Game::Draw() {
             DrawPlay();
             m_UIManager.Draw(m_Window);
             m_TowerSelectionPanel.Draw(m_Window);
+
+            m_SpeedControlPanel.Draw(m_Window);
 
             if (m_MenuManager.IsGamePaused() || m_MenuManager.IsGameOver() || m_MenuManager.IsGameWon()) {
                 m_MenuManager.Draw(m_Window);
@@ -1489,7 +1602,6 @@ void Game::HandleInput() {
 
                 if (m_MenuManager.IsInGamePlay()) {
                     m_eGameMode = Play;
-                    m_GameModeText.setString("Play Mode");
                 }
             }
             else {
@@ -1582,6 +1694,22 @@ void Game::HandleGameInput(sf::Event& event) {
     }
     else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         sf::Vector2f mousePos = m_Window.mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+
+        // Check speed control panel click first
+        if (m_SpeedControlPanel.HandleClick(mousePos)) {
+            m_UIManager.SetWarningMessage("Game speed changed to " +
+                std::to_string(m_SpeedControlPanel.GetSpeedMultiplier()) + "x", m_Window.getSize());
+            return;
+        }
+
+        // Check delete button click
+        if (IsMouseOverDeleteButton(mousePos)) {
+            if (m_ClickedTowerIndex != -1) {
+                DeleteTowerAtIndex(m_ClickedTowerIndex);
+                m_UIManager.SetWarningMessage("Tower deleted successfully!", m_Window.getSize());
+            }
+            return;
+        }
 
         // Kiểm tra xem có click vào tower selection panel không
         int towerIndex = m_TowerSelectionPanel.GetClickedTowerIndex(mousePos);
@@ -1735,12 +1863,29 @@ void Game::SaveCurrentGameState() {
     }
 }
 
+void Game::UpdateExperienceBarVisibility() {
+    const MenuManager::PlayerProfile* profile = m_MenuManager.GetCurrentProfile();
+    bool showExpBar = (profile != nullptr && !m_MenuManager.IsGuestProfile());
+    m_PlayerTextManager.SetShowExperienceBar(showExpBar);
+
+    if (showExpBar) {
+        // Update experience information
+        int currentExp = profile->currentExperience;
+        int expToNext = profile->expToNext;
+        int currentLevel = profile->currentLevel;
+
+        m_PlayerTextManager.UpdateExperience(currentExp, expToNext, currentLevel);
+    }
+}
+
 void Game::StartGame(int map, MenuManager::Difficulty difficulty) {
     if (map <= 0) {
         std::cerr << "Invalid level selected: " << map << std::endl;
         ReturnToMenu();
         return;
     }
+
+    UpdateExperienceBarVisibility();
 
     m_MenuManager.SetCurrentMapAndDifficulty(map, difficulty);
     m_TowerSelectionPanel.SetCurrentMap(map);
@@ -1768,13 +1913,21 @@ void Game::StartGame(int map, MenuManager::Difficulty difficulty) {
     m_selectedTowerIndex = -1;
     m_towerCost = m_TowerConfigs[0].cost;
 
-    m_eGameMode = Play;
-    m_GameModeText.setString("Play Mode");
+    m_bVictoryTriggered = false;
+    m_bGameOverTriggered = false;
 
+    m_eGameMode = Play;
+
+    SoundManager::getInstance().Cleanup();
     SoundManager::getInstance().PauseBackgroundMusic();
     SoundManager::getInstance().ResumeBackgroundMusic();
 
     m_MenuManager.SetMenuState(MenuManager::MenuState::GamePlay);
+    UpdatePlayerText();
+}
+
+void Game::OnProfileChanged() {
+    UpdateExperienceBarVisibility();
     UpdatePlayerText();
 }
 
@@ -1799,7 +1952,19 @@ void Game::UpdatePlayerText() {
     m_PlayerTextManager.UpdateContent(difficultyStr, m_iPlayerGold, m_iPlayerHealth,
         m_fGoldPerSecond, totalEnemiesRemaining);
 
+    const MenuManager::PlayerProfile* profile = m_MenuManager.GetCurrentProfile();
+    if (profile && !m_MenuManager.IsGuestProfile()) {
+        int currentExp = profile->currentExperience;
+        int expToNext = profile->expToNext;
+        int currentLevel = profile->currentLevel;
+        int coins = profile->coins;
+
+        m_PlayerTextManager.UpdateExperience(currentExp, expToNext, currentLevel);
+        m_PlayerTextManager.UpdateCoins(coins);
+        m_PlayerTextManager.UpdateTopRightExpBar(windowSize);
+    }
 }
+
 
 bool Game::CheckVictoryConditions() {
     // Kiểm tra xem tất cả enemies đã bị tiêu diệt chưa
@@ -1838,6 +2003,75 @@ void Game::ClearSavedGameData() {
     std::cout << "Cleared saved data for Map " << m_iCurrentMap << " Difficulty " << static_cast<int>(m_eDifficulty) << std::endl;
 }
 
+void Game::HandleExperienceGain() {
+    MenuManager::PlayerProfile* profile = const_cast<MenuManager::PlayerProfile*>(m_MenuManager.GetCurrentProfile());
+    if (!profile) return;
+
+    int oldLevel = profile->currentLevel;
+
+    // Calculate experience gain
+    int expGain = profile->CalculateExpGain(
+        static_cast<MenuManager::Difficulty>(m_eDifficulty),
+        m_iCurrentMap,
+        m_fTimeInPlayMode,
+        m_iPlayerHealth
+    );
+
+    std::cout << "Experience gained: " << expGain << std::endl;
+
+    // Add experience to profile
+    profile->AddExperience(expGain);
+
+    // Update experience bar with new values
+    int currentExp = profile->currentExperience;
+    int expToNext = profile->expToNext;
+    int currentLevel = profile->currentLevel;
+    m_PlayerTextManager.UpdateExperience(currentExp, expToNext, currentLevel);
+
+    // Show level up message if leveled up
+    if (profile->currentLevel > oldLevel) {
+        ShowLevelUpMessage(profile->currentLevel);
+    }
+
+    // Update UI with experience gain message
+    m_UIManager.SetWarningMessage(
+        "Victory! +" + std::to_string(expGain) + " EXP gained!",
+        m_Window.getSize()
+    );
+}
+
+void Game::HandleCoinsReward() {
+    MenuManager::PlayerProfile* profile = const_cast<MenuManager::PlayerProfile*>(m_MenuManager.GetCurrentProfile());
+    if (!profile) return;
+
+    // Calculate coins reward
+    int coinsGain = profile->CalculateCoinReward(
+        static_cast<MenuManager::Difficulty>(m_eDifficulty),
+        m_iCurrentMap,
+        m_fTimeInPlayMode,
+        m_iPlayerHealth
+    );
+
+    std::cout << "Coins gained: " << coinsGain << std::endl;
+
+    // Add coins to profile
+    profile->AddCoins(coinsGain);
+
+    // Update UI with coins gain message
+    m_UIManager.SetWarningMessage(
+        "Victory! +" + std::to_string(coinsGain) + " coins gained!",
+        m_Window.getSize()
+    );
+}
+
+void Game::ShowLevelUpMessage(int newLevel) {
+    std::string message = "LEVEL UP! New Level: " + std::to_string(newLevel);
+    m_UIManager.SetWarningMessage(message, m_Window.getSize());
+
+
+    std::cout << "Player leveled up to level " << newLevel << "!" << std::endl;
+
+}
 void Game::HandleVictory() {
     if (!m_MenuManager.GetCurrentProfile()) return;
 
@@ -1845,9 +2079,9 @@ void Game::HandleVictory() {
     // Đánh dấu map và difficulty đã hoàn thành
     OnGameCompleted();
 
-    // Tính điểm thưởng
-    /*int bonusGold = CalculateVictoryBonus();
-    AddGold(bonusGold);*/
+    HandleExperienceGain();
+
+    HandleCoinsReward();
 
     // Lưu trạng thái thắng game
     MenuManager::PlayerProfile* profile = const_cast<MenuManager::PlayerProfile*>(m_MenuManager.GetCurrentProfile());
@@ -1880,12 +2114,10 @@ void Game::ResetGameState() {
     m_bGameWonSoundPlayed = false;
     m_bGameOverTriggered = false;
 
-    m_GameModeText.setString("Play Mode");
 }
 
 void Game::ReturnToMenu() {
     m_MenuManager.SetMenuState(MenuManager::MenuState::MainMenu);
-    m_GameModeText.setString("Menu Mode");
 
     SoundManager::getInstance().PauseBackgroundMusic();
     SoundManager::getInstance().ResumeBackgroundMusic();

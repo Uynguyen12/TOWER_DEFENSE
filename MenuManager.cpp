@@ -7,6 +7,8 @@
 #include "SoundManager.h"
 
 using json = nlohmann::json;
+const int MenuManager::BASE_EXP_PER_LEVEL = 100;
+const float MenuManager::EXP_SCALING_FACTOR = 1.2f;
 
 const sf::Color MenuManager::BUTTON_NORMAL_COLOR = sf::Color(70, 54, 62, 220);  // Dark wood tone
 const sf::Color MenuManager::BUTTON_HOVER_COLOR = sf::Color(212, 175, 55, 240);  // Golden glow
@@ -100,6 +102,7 @@ void MenuManager::Initialize(sf::RenderWindow& window) {
     LoadSettingsFromFile();
     SetMenuState(MenuState::ProfileMenu);
 
+
     m_ambientSoundsPlaying = false;
     m_gameOverSoundPlaying = false;
     m_gameWonSoundPlaying = false;
@@ -127,6 +130,19 @@ void MenuManager::SetCurrentMapAndDifficulty(int map, Difficulty difficulty) {
     m_currentMap = map;
     m_currentDifficulty = difficulty;
 }
+
+int MenuManager::CalculateRequiredExp(int level) {
+    return static_cast<int>(BASE_EXP_PER_LEVEL * std::pow(EXP_SCALING_FACTOR, level - 1));
+}
+
+int MenuManager::CalculateTotalExpForLevel(int level) {
+    int totalExp = 0;
+    for (int i = 1; i < level; i++) {
+        totalExp += CalculateRequiredExp(i);
+    }
+    return totalExp;
+}
+
 
 void MenuManager::CreateGradientBackground() {
     sf::Image gradientImage;
@@ -180,6 +196,7 @@ void MenuManager::LoadResources() {
         std::cerr << "Warning: Could not load shield sword texture" << std::endl;
     }
 
+    m_PlayerTextManager.Initialize(m_font);
 
     m_titleText.setFont(m_font);
     m_titleText.setCharacterSize(56);
@@ -238,6 +255,23 @@ void MenuManager::LoadResources() {
 void MenuManager::Update(sf::RenderWindow& window, float deltaTime) {
     UpdateButtons(window);
     UpdateSliders(window);
+
+    bool shouldUpdateExpBar = (m_currentState == MenuState::MainMenu ||
+        m_currentState == MenuState::PlayMenu ||
+        m_currentState == MenuState::DifficultyMenu);
+
+    if (shouldUpdateExpBar && m_currentProfile) {
+        int requiredExpForNextLevel = CalculateRequiredExp(m_currentProfile->currentLevel);
+
+        m_PlayerTextManager.UpdateExperience(
+            m_currentProfile->currentExperience,
+            requiredExpForNextLevel, 
+            m_currentProfile->currentLevel
+        );
+        m_PlayerTextManager.UpdateCoins(m_currentProfile->coins);
+        m_PlayerTextManager.UpdateTopRightExpBar(window.getSize());
+    }
+
     if (m_ambientSoundsPlaying) {
         SoundManager::getInstance().UpdateAmbientSound();
     }
@@ -1337,13 +1371,21 @@ void MenuManager::Draw(sf::RenderWindow& window) {
     }
 
 
-
     if (m_currentState == MenuState::Settings) {
         DrawTabButtons(window);
     }
 
     DrawButtons(window);
     DrawSliders(window);
+
+
+    bool shouldShowExpBar = (m_currentState == MenuState::MainMenu ||
+        m_currentState == MenuState::PlayMenu ||
+        m_currentState == MenuState::DifficultyMenu);
+
+    if (shouldShowExpBar && m_currentProfile) {
+        m_PlayerTextManager.Draw(window); 
+    }
 
     if (m_resolutionDropdownOpen && m_currentState == MenuState::Settings &&
         m_currentSettingsTab == SettingsTab::Configuration) {
@@ -1378,8 +1420,6 @@ void MenuManager::Draw(sf::RenderWindow& window) {
         DrawPauseMenu(window);
         return;
     }
-
-
 
 }
 
@@ -2397,12 +2437,21 @@ void MenuManager::HandleInput(sf::Event& event, sf::RenderWindow& window) {
                         SetMenuState(MenuState::ProfileMenu);
                         break;
                     case MenuState::MainMenu:
+                        if (m_currentProfile) {
+                            m_PlayerTextManager.Draw(window);
+                        }
                         SetMenuState(MenuState::ProfileMenu);
                         break;
                     case MenuState::PlayMenu:
+                        if (m_currentProfile) {
+                            m_PlayerTextManager.Draw(window);
+                        }
                         SetMenuState(MenuState::MainMenu);
                         break;
                     case MenuState::DifficultyMenu:
+                        if (m_currentProfile) {
+                            m_PlayerTextManager.Draw(window);
+                        }
                         SetMenuState(MenuState::PlayMenu);
                         break;
                     case MenuState::Settings:
@@ -2529,6 +2578,8 @@ void MenuManager::CreatePauseMenu() {
                 m_startGameCallback(m_currentMap, m_currentDifficulty);
             }
             m_gamePaused = false;
+            m_gameWon = false;
+            m_gameOver = false;
             m_pauseButtons.clear();
         },
         ButtonStyle::WoodPlank,
@@ -2634,6 +2685,28 @@ void MenuManager::CreatePauseButton(const std::string& text, sf::Vector2f positi
 void MenuManager::SetMenuState(MenuState newState) {
     m_previousState = m_currentState;
     m_currentState = newState;
+
+    bool shouldShowExpBar = (newState == MenuState::MainMenu ||
+        newState == MenuState::PlayMenu ||
+        newState == MenuState::DifficultyMenu);
+
+    if (shouldShowExpBar && m_currentProfile) {
+        m_PlayerTextManager.SetShowTopRightExpBar(true);
+
+        int requiredExpForCurrentLevel = CalculateRequiredExp(m_currentProfile->currentLevel);
+
+        m_PlayerTextManager.UpdateExperience(
+            m_currentProfile->currentExperience,
+            requiredExpForCurrentLevel,
+            m_currentProfile->currentLevel
+        );
+        m_PlayerTextManager.UpdateCoins(m_currentProfile->coins);
+
+        m_PlayerTextManager.UpdateTopRightExpBar(sf::Vector2u(m_windowSize.x, m_windowSize.y));
+    }
+    else {
+        m_PlayerTextManager.SetShowTopRightExpBar(false);
+    }
 
     m_buttons.clear();
     m_sliders.clear();
@@ -3002,51 +3075,87 @@ void MenuManager::CreateGameWonMenu() {
     float buttonHeight = 80;
     float buttonSpacing = 100;
     float startY = centerPos.y + 80;
+    int nextMap = m_currentMap + 1;
+    if (nextMap <= 4) {
+        CreateGameWonButton("Next nap",
+            sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
+            sf::Vector2f(buttonWidth, buttonHeight),
+            [this](sf::RenderWindow&) {
+                m_gamePaused = false;
+                m_gameOver = false;
+                m_gameWon = false;
+                m_gameWonButtons.clear();
+                int nextMap = m_currentMap + 1;
+                if (m_startGameCallback) {
+                    m_startGameCallback(nextMap, m_currentDifficulty);
+                }
+                std::cout << "Going to next level: " << nextMap << std::endl;
+            },
+            ButtonStyle::Shield,
+            ButtonIcon::Restart);
 
-    CreateGameWonButton("Next nap",
-        sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
-        sf::Vector2f(buttonWidth, buttonHeight),
-        [this](sf::RenderWindow&) {
-            m_gameWon = false;
-            m_gameWonButtons.clear();
-            int nextMap = m_currentMap + 1;
-            if (m_startGameCallback) {
-                m_startGameCallback(nextMap, m_currentDifficulty);
-            }
-            std::cout << "Going to next level: " << nextMap << std::endl;
-        },
-        ButtonStyle::Shield,
-        ButtonIcon::Restart);
+        CreateGameWonButton("Main Menu",
+            sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
+            sf::Vector2f(buttonWidth, buttonHeight),
+            [this](sf::RenderWindow&) {
+                SetMenuState(MenuState::MainMenu);
+                m_gameWon = false;
+                m_gameWonButtons.clear();
+                m_buttons.clear();
+                m_sliders.clear();
+                m_resolutionDropdownButtons.clear();
+                CreateMainMenu();
+                std::cout << "Returning to Main Menu from game won..." << std::endl;
+            },
+            ButtonStyle::Stone,
+            ButtonIcon::Crown);
 
-    CreateGameWonButton("Main Menu",
-        sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
-        sf::Vector2f(buttonWidth, buttonHeight),
-        [this](sf::RenderWindow&) {
-            SetMenuState(MenuState::MainMenu);
-            m_gameWon = false;
-            m_gameWonButtons.clear();
-            m_buttons.clear();
-            m_sliders.clear();
-            m_resolutionDropdownButtons.clear();
-            CreateMainMenu();
-            std::cout << "Returning to Main Menu from game won..." << std::endl;
-        },
-        ButtonStyle::Stone,
-        ButtonIcon::Crown);
+        CreateGameWonButton("Exit",
+            sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 3),
+            sf::Vector2f(buttonWidth, buttonHeight),
+            [this](sf::RenderWindow& window) {
+                m_gameWon = false;
+                m_gameWonButtons.clear();
 
-    CreateGameWonButton("Exit",
-        sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 3),
-        sf::Vector2f(buttonWidth, buttonHeight),
-        [this](sf::RenderWindow& window) {
-            m_gameWon = false;
-            m_gameWonButtons.clear();
+                if (m_exitCallback) {
+                    m_exitCallback(window);
+                }
+            },
+            ButtonStyle::Scroll,
+            ButtonIcon::Scroll);
+    }
+    
+    else {
+        CreateGameWonButton("Main Menu",
+            sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing),
+            sf::Vector2f(buttonWidth, buttonHeight),
+            [this](sf::RenderWindow&) {
+                SetMenuState(MenuState::MainMenu);
+                m_gameWon = false;
+                m_gameWonButtons.clear();
+                m_buttons.clear();
+                m_sliders.clear();
+                m_resolutionDropdownButtons.clear();
+                CreateMainMenu();
+                std::cout << "Returning to Main Menu from game won..." << std::endl;
+            },
+            ButtonStyle::Stone,
+            ButtonIcon::Crown);
 
-            if (m_exitCallback) {
-                m_exitCallback(window);
-            }
-        },
-        ButtonStyle::Scroll,
-        ButtonIcon::Scroll);
+        CreateGameWonButton("Exit",
+            sf::Vector2f(centerPos.x + (m_gameWonBackground.getSize().x - buttonWidth) / 2, startY + buttonSpacing * 2),
+            sf::Vector2f(buttonWidth, buttonHeight),
+            [this](sf::RenderWindow& window) {
+                m_gameWon = false;
+                m_gameWonButtons.clear();
+
+                if (m_exitCallback) {
+                    m_exitCallback(window);
+                }
+            },
+            ButtonStyle::Scroll,
+            ButtonIcon::Scroll);
+    }
 
     m_gameWonBackground.setPosition(
         (m_windowSize.x - m_gameWonBackground.getSize().x) / 2,
@@ -3756,7 +3865,7 @@ void MenuManager::CreateChooseProfileMenu() {
     int buttonIndex = 0;
 
     for (size_t i = 0; i < m_profiles.size(); ++i) {
-        std::string profileInfo = m_profiles[i].name;
+        std::string profileInfo = m_profiles[i].name + " - Lv." + std::to_string(m_profiles[i].currentLevel);
         float profileButtonWidth = BUTTON_WIDTH - 80;
         CreateButton(profileInfo,
             sf::Vector2f(centerX, startY + buttonIndex * BUTTON_SPACING),
@@ -3804,6 +3913,22 @@ void MenuManager::CreateMainMenu() {
         SoundManager::getInstance().ResumeBackgroundMusic();
         m_ambientSoundsPlaying = false;
     }
+
+    if (m_currentProfile) {
+        m_PlayerTextManager.SetShowTopRightExpBar(true);
+
+        int requiredExpForCurrentLevel = CalculateRequiredExp(m_currentProfile->currentLevel);
+
+        m_PlayerTextManager.UpdateExperience(
+            m_currentProfile->currentExperience,
+            requiredExpForCurrentLevel,
+            m_currentProfile->currentLevel
+        );
+        m_PlayerTextManager.UpdateCoins(m_currentProfile->coins);
+
+        m_PlayerTextManager.UpdateTopRightExpBar(sf::Vector2u(m_windowSize.x, m_windowSize.y));
+    }
+
     CreateMedievalButton("Play",
         sf::Vector2f((m_windowSize.x - BUTTON_WIDTH) / 2, startY),
         sf::Vector2f(BUTTON_WIDTH, BUTTON_HEIGHT),
@@ -3829,6 +3954,16 @@ void MenuManager::CreatePlayMenu() {
     m_titleText.setString("Select Map");
     sf::FloatRect titleBounds = m_titleText.getLocalBounds();
     m_titleText.setPosition((m_windowSize.x - titleBounds.width) / 2, 100);
+
+    if (m_currentProfile) {
+        m_PlayerTextManager.SetShowTopRightExpBar(true);
+        m_PlayerTextManager.UpdateExperience(
+            m_currentProfile->currentExperience,
+            m_currentProfile->expToNext,
+            m_currentProfile->currentLevel
+        );
+        m_PlayerTextManager.UpdateCoins(m_currentProfile->coins);
+    }
 
     float centerX = m_windowSize.x / 2 - BUTTON_WIDTH / 2;
     float startY = m_windowSize.y / 2 - BUTTON_HEIGHT * 2;
@@ -3873,6 +4008,16 @@ void MenuManager::CreateDifficultyMenu() {
     m_buttons.clear();
     m_titleText.setString("Select Difficulty");
     CenterText(m_titleText, sf::RectangleShape(sf::Vector2f(m_windowSize.x, 100)));
+
+    if (m_currentProfile) {
+        m_PlayerTextManager.SetShowTopRightExpBar(true);
+        m_PlayerTextManager.UpdateExperience(
+            m_currentProfile->currentExperience,
+            m_currentProfile->expToNext,
+            m_currentProfile->currentLevel
+        );
+        m_PlayerTextManager.UpdateCoins(m_currentProfile->coins);
+    }
 
     float centerX = m_windowSize.x / 2 - BUTTON_WIDTH / 2;
     float startY = m_windowSize.y / 2 - BUTTON_HEIGHT * 2;
@@ -4279,6 +4424,20 @@ void MenuManager::SelectProfile(int index) {
         m_currentProfile = &m_profiles[index];
         std::cout << "Selected profile: " << m_currentProfile->name << std::endl;
     }
+
+    bool shouldShowExpBar = (m_currentState == MenuState::MainMenu ||
+        m_currentState == MenuState::PlayMenu ||
+        m_currentState == MenuState::DifficultyMenu);
+
+    if (shouldShowExpBar) {
+        m_PlayerTextManager.SetShowTopRightExpBar(true);
+        m_PlayerTextManager.UpdateExperience(
+            m_currentProfile->currentExperience,
+            m_currentProfile->expToNext,
+            m_currentProfile->currentLevel
+        );
+        m_PlayerTextManager.UpdateCoins(m_currentProfile->coins);
+    }
 }
 
 void MenuManager::DeleteGuestProfile() {
@@ -4528,6 +4687,7 @@ void MenuManager::LoadSettingsFromFile() {
 }
 
 
+
 void MenuManager::SaveProfilesToFile() {
     std::ofstream file(PROFILES_FILE_PATH);
     if (!file.is_open()) {
@@ -4548,6 +4708,10 @@ void MenuManager::SaveProfilesToFile() {
             profileJson["savedLevel"] = profile.savedLevel;
             profileJson["savedGold"] = profile.savedGold;
             profileJson["currentLevel"] = profile.currentLevel;
+            profileJson["currentExp"] = profile.currentExperience;
+            profileJson["nextExp"] = profile.expToNext;
+            profileJson["totalExp"] = profile.totalExperience;
+            profileJson["coins"] = profile.coins;
 
             // Save game states for all maps and difficulties
             json gameStatesArray = json::array();
@@ -4631,6 +4795,10 @@ void MenuManager::LoadProfilesFromFile() {
                 profile.savedLevel = profileJson.value("savedLevel", 1);
                 profile.savedGold = profileJson.value("savedGold", 10);
                 profile.currentLevel = profileJson.value("currentLevel", 1);
+                profile.currentExperience = profileJson.value("currentExp", 0);
+                profile.expToNext = profileJson.value("nextExp", 0);
+                profile.totalExperience = profileJson.value("totalExp", 0);
+                profile.coins = profileJson.value("coins", 0);
 
                 // Load game states for each map and difficulty
                 if (profileJson.contains("gameStates") && profileJson["gameStates"].is_array()) {

@@ -35,6 +35,7 @@
     <ClCompile Include="MenuManager.cpp" />
     <ClCompile Include="PlayerTextManager.cpp" />
     <ClCompile Include="SoundManager.cpp" />
+    <ClCompile Include="SpeedControlPanel.cpp" />
     <ClCompile Include="TileOptions.cpp" />
     <ClCompile Include="TitleScreen.cpp" />
     <ClCompile Include="TowerSelectionPanel.cpp" />
@@ -50,6 +51,7 @@
     <ClInclude Include="MenuManager.h" />
     <ClInclude Include="PlayerTextManager.h" />
     <ClInclude Include="SoundManager.h" />
+    <ClInclude Include="SpeedControlPanel.h" />
     <ClInclude Include="TileOptions.h" />
     <ClInclude Include="TitleScreen.h" />
     <ClInclude Include="TowerSelectionPanel.h" />

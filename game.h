@@ -13,6 +13,7 @@
 #include "MenuManager.h"
 #include "UIManager.h"
 #include "TowerSelectionPanel.h"
+#include "SpeedControlPanel.h"
 
 using namespace std;
 
@@ -66,17 +67,21 @@ private:
     //UI game
     UIManager m_UIManager;
     TowerSelectionPanel m_TowerSelectionPanel;
+    SpeedControlPanel m_SpeedControlPanel;
 
     // Update functions
     void UpdatePlay();
-    void UpdateTower();
-    void UpdateProjectiles();
+    void UpdateTower(float adjustedDeltaTime);
+    void UpdateProjectiles(float adjustedDeltaTime);
     void CheckForDeletionRequest();
-    void UpdatePhysics();
-    void UpdateEnemySpawning();
-    void UpdateEnemyMovement();
-    void UpdateGoldCalculation();
+    void UpdatePhysics(float adjustedDeltaTime);
+    void UpdateEnemySpawning(float adjustedDeltaTime);
+    void UpdateEnemyMovement(float adjustedDeltaTime);
+    void UpdateGoldCalculation(float adjustedDeltaTime);
     void CheckGameOver();
+    void UpdateExperienceBarVisibility();
+    void OnProfileChanged();
+
 
     // Add title screen update function
     void UpdateTitleScreen();
@@ -104,7 +109,7 @@ public:
     void HandlePlayInput();
     void HandleTowerSelectionInput();
 
-    // Add title screen input handling
+    // Add title screen input  float m_fEnemySpawnRate;
     void HandleTitleScreenInput(sf::Event& event);
 
     // Game state management
@@ -133,6 +138,12 @@ public:
     void HideRange();
     void HideGhostTower();
 
+    // Tower deletion
+    bool DeleteTowerAtIndex(int towerIndex);
+    void DrawDeleteButton();
+    void UpdateDeleteButton(const sf::Vector2f& mousePos);
+    bool IsMouseOverDeleteButton(const sf::Vector2f& mousePos);
+
     //Save game
     void SaveCurrentGameState();
     void LoadGameState();
@@ -145,6 +156,12 @@ public:
     int CalculateVictoryBonus();
     void ShowVictoryScreen();
     void OnGameCompleted();
+
+    void HandleExperienceGain();
+    void ShowLevelUpMessage(int newLevel);
+    int CalculateExpGain() const;
+
+    void HandleCoinsReward();
 
 private:
     sf::RenderWindow m_Window;
@@ -178,6 +195,8 @@ private:
     sf::Texture m_enemyTextures[4];
     sf::Texture m_bulletTextures[4];
 
+    // Speed control
+    float m_GameSpeedMultiplier;
 
     Entity* FindClosestEnemyInRange(const Entity& tower);
     const Map::PathTile* FindClosestPathTile(const Entity& enemy, const Map::Path& path);
@@ -233,6 +252,12 @@ private:
     sf::RectangleShape m_StatsPanel;   // Background của bảng thống kê
     sf::Text m_StatsTitleText;         // Title của bảng thống kê
     sf::Text m_StatsContentText;       // Nội dung thống kê
+
+    // Delete button for towers
+    sf::RectangleShape m_DeleteButton;
+    sf::Text m_DeleteButtonText;
+    bool m_ShowDeleteButton;
+    bool m_IsDeleteButtonHovered;
 
     // Mouse tracking
     sf::Vector2f m_LastMousePosition;

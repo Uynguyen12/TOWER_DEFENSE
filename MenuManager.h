@@ -6,6 +6,8 @@
 #include "Entity.h"
 #include <functional>
 #include "UIManager.h"
+#include <iostream>
+#include "PlayerTextManager.h"
 
 class MenuManager {
 public:
@@ -131,6 +133,11 @@ public:
         int savedLevel = 1;
         int savedGold = 10;
         int currentLevel = 1;
+        int currentExperience = 0;
+        int expToNext = 100;
+        int totalExperience = 0;
+        int coins = 0;
+
 
         // Game state data for each map and difficulty combination
         struct GameStateData {
@@ -219,6 +226,120 @@ public:
                 if (completion.extremely) total++;
             }
             return total;
+        }
+        void AddExperience(int exp) {
+            currentExperience += exp;
+            totalExperience += exp;
+            int requiredExp = MenuManager::CalculateRequiredExp(currentLevel);
+            while (currentExperience >= requiredExp) {
+                currentExperience -= requiredExp;
+                currentLevel++;
+                requiredExp = MenuManager::CalculateRequiredExp(currentLevel); // Cập nhật required EXP cho level mới
+            }
+            expToNext = requiredExp; 
+        }
+
+        int GetExpForNextLevel() const {
+            return CalculateRequiredExp(currentLevel);
+        }
+
+        int GetExpForCurrentLevel() const {
+            return currentLevel > 1 ? CalculateRequiredExp(currentLevel - 1) : 0;
+        }
+
+        float GetLevelProgress() const {
+            int requiredExp = GetExpForCurrentLevel();
+            return requiredExp > 0 ? static_cast<float>(currentExperience) / requiredExp : 0.0f;
+        }
+
+        void LevelUp() {
+            int expForNextLevel = GetExpForCurrentLevel();
+            currentExperience -= expForNextLevel;
+            currentLevel++;
+
+            std::cout << "Level up! New level: " << currentLevel << std::endl;
+
+            // Ensure currentExp doesn't go negative
+            if (currentExperience < 0) {
+                currentExperience = 0;
+            }
+        }
+
+        // Calculate experience gained based on difficulty and performance
+        int CalculateExpGain(Difficulty diff, int mapNumber, float timeTaken, int healthRemaining) const {
+            int baseExp = 50; // Base experience for completing a level
+
+            // Difficulty multiplier
+            float difficultyMultiplier = 1.0f;
+            switch (diff) {
+            case Difficulty::Easy: difficultyMultiplier = 1.0f; break;
+            case Difficulty::Medium: difficultyMultiplier = 1.5f; break;
+            case Difficulty::Hard: difficultyMultiplier = 2.0f; break;
+            case Difficulty::Extremely: difficultyMultiplier = 3.0f; break;
+            }
+
+            // Map multiplier (higher maps give more exp)
+            float mapMultiplier = 1.0f + (mapNumber - 1) * 0.2f;
+
+            // Time bonus (faster completion = more exp, max 50% bonus)
+            float timeBonus = 1.0f;
+            if (timeTaken < 300.0f) { // Less than 5 minutes
+                timeBonus = 1.5f;
+            }
+            else if (timeTaken < 600.0f) { // Less than 10 minutes
+                timeBonus = 1.3f;
+            }
+            else if (timeTaken < 900.0f) { // Less than 15 minutes
+                timeBonus = 1.1f;
+            }
+
+            // Health bonus (more health remaining = more exp, max 30% bonus)
+            float healthBonus = 1.0f + (healthRemaining / 100.0f) * 0.3f;
+
+            int finalExp = static_cast<int>(baseExp * difficultyMultiplier * mapMultiplier * timeBonus * healthBonus);
+
+            return std::max(finalExp, 10); // Minimum 10 exp
+        }
+
+        void AddCoins(int amount) {
+            coins += amount;
+            if (coins < 0) coins = 0; // Đảm bảo không âm
+        }
+
+        // Calculate coins gained based on difficulty and performance
+        int CalculateCoinReward(Difficulty diff, int mapNumber, float timeTaken, int healthRemaining) const {
+            int baseCoins = 10; // Base coins for completing a level
+
+            // Difficulty multiplier
+            float difficultyMultiplier = 1.0f;
+            switch (diff) {
+            case Difficulty::Easy: difficultyMultiplier = 1.0f; break;
+            case Difficulty::Medium: difficultyMultiplier = 1.5f; break;
+            case Difficulty::Hard: difficultyMultiplier = 2.0f; break;
+            case Difficulty::Extremely: difficultyMultiplier = 2.5f; break;
+            }
+
+            // Map multiplier (higher maps give more coins)
+            float mapMultiplier = 1.0f + (mapNumber - 1) * 0.3f;
+
+            // Time bonus (faster completion = more coins, max 50% bonus)
+            float timeBonus = 1.0f;
+            if (timeTaken < 300.0f) { // Less than 5 minutes
+                timeBonus = 1.5f;
+            }
+            else if (timeTaken < 600.0f) { // Less than 10 minutes
+                timeBonus = 1.3f;
+            }
+            else if (timeTaken < 900.0f) { // Less than 15 minutes
+                timeBonus = 1.1f;
+            }
+
+            // Health bonus (more health remaining = more coins, max 30% bonus)
+            float healthBonus = 1.0f + (healthRemaining / 100.0f) * 0.3f;
+
+            int finalCoins = static_cast<int>(baseCoins * difficultyMultiplier * mapMultiplier * timeBonus * healthBonus);
+
+            return std::max(finalCoins, 5); // Minimum 5 coins
         }
     };
 
@@ -422,6 +543,9 @@ private:
     MenuState m_currentState;
     MenuState m_previousState;
 
+    //Player's text
+    PlayerTextManager m_PlayerTextManager;
+
     // Resources
     sf::Font m_font;
     sf::Texture m_backgroundTexture;
@@ -560,6 +684,14 @@ private:
     static const int MAX_PROFILES;
     static const int MAX_VISIBLE_RESOLUTIONS;
     static const float RESOLUTION_SCROLL_SPEED;
+
+    //Experience
+    static const int BASE_EXP_PER_LEVEL;
+    static const float EXP_SCALING_FACTOR;
+
+    static int CalculateRequiredExp(int level);
+
+    static int CalculateTotalExpForLevel(int level);
 
     // Profile file path
     static const std::string PROFILES_FILE_PATH;
